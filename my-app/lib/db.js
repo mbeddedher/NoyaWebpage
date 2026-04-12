@@ -17,10 +17,17 @@ export function isVercelUsingUnreachableDatabase() {
   return Boolean(process.env.VERCEL) && databaseUrlPointsToLocalhost();
 }
 
+function poolSslConfig() {
+  if (databaseUrlPointsToLocalhost()) return false;
+  const off = process.env.DATABASE_SSL === 'false' || process.env.DATABASE_SSL === '0';
+  if (off) return false;
+  return { rejectUnauthorized: false };
+}
+
 // Create a pool to manage connections
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+  ssl: poolSslConfig(),
 });
 
 // Add error handling for the pool

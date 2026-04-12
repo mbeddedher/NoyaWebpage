@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyToken } from '../../../utils/auth';
-import { pool } from '../../../utils/db';
+import { query } from '~/lib/db';
 
 export async function GET(request) {
   try {
@@ -19,7 +19,7 @@ export async function GET(request) {
 
     // Get user data from database
     const userQuery = 'SELECT id, first_name, last_name, email, phone_number FROM users WHERE id = $1';
-    const userResult = await pool.query(userQuery, [decoded.userId]);
+    const userResult = await query(userQuery, [decoded.userId]);
     
     if (userResult.rows.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -27,7 +27,7 @@ export async function GET(request) {
 
     // Get user addresses
     const addressQuery = 'SELECT * FROM user_addresses WHERE user_id = $1';
-    const addressResult = await pool.query(addressQuery, [decoded.userId]);
+    const addressResult = await query(addressQuery, [decoded.userId]);
 
     return NextResponse.json({
       user: userResult.rows[0],
