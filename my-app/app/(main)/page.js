@@ -1,21 +1,20 @@
 import HomeContent from './HomeContent';
+import { queryProductCards } from '~/lib/productCards';
 
-function getBaseUrl() {
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'http://localhost:3000';
-}
+export const revalidate = 60;
 
 export default async function Home() {
   let products = [];
   try {
-    const res = await fetch(`${getBaseUrl()}/api/product-cards`, {
-      next: { revalidate: 60 },
+    products = await queryProductCards({
+      categories: [],
+      minPrice: null,
+      maxPrice: null,
+      brands: [],
+      sizes: [],
     });
-    const data = await res.json();
-    products = Array.isArray(data) ? data : data.products || [];
   } catch (e) {
-    console.error('Failed to fetch products for homepage:', e);
+    console.error('Failed to load products for homepage:', e);
   }
 
   return <HomeContent initialProducts={products} />;
