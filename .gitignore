@@ -1,0 +1,8 @@
+
+
+# Kök dizindeki gizli dosyalar (asla commit etmeyin)
+.env
+.env.*
+
+# Proje kökünde yanlışlıkla npm çalıştırılırsa (gerçek uygulama my-app içinde)
+/node_modules/
