@@ -1,0 +1,3 @@
+    AdminPanelde edit özelliğinde değişiklikleri onayladıktan sonra, sayfayı kapatmak için cancela basıldığında, eğer değişiklikler kaydedildiyse
+pop-up ile bir daha sorma.
+

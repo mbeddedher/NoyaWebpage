@@ -17,6 +17,14 @@ const SIZE_CONFIGS = {
   large:  { width: 1200, quality: 85 },
 };
 
+/** Derivative files are always stored as .webp (basename matches original stem). */
+export function derivativeWebpFilename(originalFilename) {
+  const clean = originalFilename
+    .replace(/^\/?(public\/)?(images\/)+/, '')
+    .replace(/^\/+/, '');
+  return `${path.parse(clean).name}.webp`;
+}
+
 async function ensureDir(dirPath) {
   try {
     await fs.access(dirPath);
@@ -26,8 +34,8 @@ async function ensureDir(dirPath) {
 }
 
 /**
- * Generate thumb, medium, and large versions from an original image.
- * @param {string} originalFilename – bare filename stored in DB (e.g. "product.jpg")
+ * Generate thumb, medium, and large WebP versions from an original on disk.
+ * @param {string} originalFilename – bare filename in DB (e.g. "id.webp" or legacy "id.jpg")
  * @returns {{ thumb_url, medium_url, large_url, original_url }}
  */
 export async function generateImageVersions(originalFilename) {
@@ -36,6 +44,7 @@ export async function generateImageVersions(originalFilename) {
     .replace(/^\/+/, '');
 
   const sourcePath = path.join(IMAGES_DIR, cleanName);
+  const outBase = derivativeWebpFilename(cleanName);
 
   try {
     await fs.access(sourcePath);
@@ -43,9 +52,9 @@ export async function generateImageVersions(originalFilename) {
     console.warn(`Source image not found at ${sourcePath}, storing URL-only references`);
     return {
       original_url: cleanName,
-      thumb_url:  `thumb/${cleanName}`,
-      medium_url: `medium/${cleanName}`,
-      large_url:  `large/${cleanName}`,
+      thumb_url:  `thumb/${outBase}`,
+      medium_url: `medium/${outBase}`,
+      large_url:  `large/${outBase}`,
     };
   }
 
@@ -55,7 +64,7 @@ export async function generateImageVersions(originalFilename) {
     const outputDir = path.join(IMAGES_DIR, sizeName);
     await ensureDir(outputDir);
 
-    const outputPath = path.join(outputDir, cleanName);
+    const outputPath = path.join(outputDir, outBase);
 
     try {
       let resizeOptions;
@@ -68,13 +77,13 @@ export async function generateImageVersions(originalFilename) {
       }
       await sharp(sourcePath)
         .resize(resizeOptions)
-        .jpeg({ quality: config.quality, mozjpeg: true })
+        .webp({ quality: config.quality, effort: 4 })
         .toFile(outputPath);
 
-      results[`${sizeName}_url`] = `${sizeName}/${cleanName}`;
+      results[`${sizeName}_url`] = `${sizeName}/${outBase}`;
     } catch (err) {
       console.error(`Failed to generate ${sizeName} for ${cleanName}:`, err.message);
-      results[`${sizeName}_url`] = `${sizeName}/${cleanName}`;
+      results[`${sizeName}_url`] = `${sizeName}/${outBase}`;
     }
   }
 
@@ -90,12 +99,16 @@ export async function deleteImageVersions(originalFilename) {
     .replace(/^\/?(public\/)?(images\/)+/, '')
     .replace(/^\/+/, '');
 
+  const webpName = derivativeWebpFilename(cleanName);
+  const names = webpName === cleanName ? [cleanName] : [cleanName, webpName];
+
   for (const sizeName of Object.keys(SIZE_CONFIGS)) {
-    const filePath = path.join(IMAGES_DIR, sizeName, cleanName);
-    try {
-      await fs.unlink(filePath);
-    } catch {
-      // file may not exist
+    for (const name of names) {
+      try {
+        await fs.unlink(path.join(IMAGES_DIR, sizeName, name));
+      } catch {
+        // file may not exist
+      }
     }
   }
 }

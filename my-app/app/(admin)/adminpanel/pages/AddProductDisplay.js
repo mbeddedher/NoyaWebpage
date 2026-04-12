@@ -896,9 +896,9 @@ export function ProductImages({ data, onChange }) {
             in_thumb: true,
             hide: false,
             order_index: images.length + newImages.length,
-            file_size: fileSize,
-            resolution,
-            format
+            file_size: uploadResponse.file_size ?? fileSize,
+            resolution: uploadResponse.resolution ?? resolution,
+            format: uploadResponse.format || format
           };
           console.log('Created new image object:', newImage);
           newImages.push(newImage);
