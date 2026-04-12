@@ -1,5 +1,5 @@
 -- Currency rates for testing: USD/EUR to TRY conversion
--- Run: psql -d your_db -f migrations/currency_rates_test_data.sql
+-- Run: psql -d your_db -f sqlfiles/currency_rates_test_data.sql
 
 -- 1. Insert test rates (approximate March 2025: USD ~34.50 TRY, EUR ~37.20 TRY)
 INSERT INTO currency_rates (from_currency, to_currency, rate, date)
