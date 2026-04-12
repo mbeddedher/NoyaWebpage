@@ -1,0 +1,65 @@
+.tabs {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+  }
+
+  .tab-button {
+    display: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background-color: white;
+  }
+
+  .tab-button.active {
+    display: none;
+    background-color: #007bff;
+    color: white;
+  }
+
+  .tab-content-wrapper {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .tab-content {
+    display: block;
+    width: 48%;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  @media (max-width: 768px) {
+    .tabs {
+      display: block;
+      text-align: center;
+    }
+
+    .tab-button {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .tab-button.active {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    /* On mobile, only the active content is shown */
+    .tab-content-wrapper {
+      display: block;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+  }

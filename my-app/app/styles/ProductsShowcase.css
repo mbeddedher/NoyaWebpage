@@ -1,0 +1,114 @@
+.products-showcase {
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 24px 0 32px;
+  box-sizing: border-box;
+}
+
+.products-showcase-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.products-showcase-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.products-showcase-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.products-showcase-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.products-showcase-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.products-showcase-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.products-showcase-viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin: 0;
+}
+
+.products-showcase-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.products-showcase-track {
+  display: flex;
+  gap: 20px;
+  padding: 4px 0 16px;
+  width: max-content;
+}
+
+.products-showcase-card-wrap {
+  flex: 0 0 220px;
+  width: 220px;
+}
+
+.products-showcase-card-wrap .product-card {
+  width: 100%;
+}
+
+/* Smaller cards on main page showcase */
+.products-showcase-card-wrap .product-name {
+  font-size: 14px;
+  margin: 0 0 4px 0;
+}
+
+.products-showcase-card-wrap .product-info {
+  padding: 10px;
+}
+
+.products-showcase-card-wrap .product-price {
+  font-size: 14px;
+}
+
+.products-showcase-card-wrap .product-card-dots {
+  bottom: 6px;
+}
+
+.products-showcase-card-wrap .product-card-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.products-showcase-card-wrap .product-card-dot.active {
+  transform: scale(1.2);
+}
+
+.products-showcase-card-wrap .size-button {
+  font-size: 12px;
+  padding: 4px 8px;
+}

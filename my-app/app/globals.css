@@ -1,0 +1,38 @@
+:root {
+  --navbar-height: 113px;
+}
+
+html,
+body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #ffffff;
+}
+
+/* Full-width page container */
+.page-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Add spacing for main content */
+.main-content { 
+  max-width: 1500px;
+  margin: 0 auto;
+ 
+} 
+/* Ensure header spans full width */
+header {
+  width: 100%;
+  margin-bottom: 20px; /* Space between header and content */
+}

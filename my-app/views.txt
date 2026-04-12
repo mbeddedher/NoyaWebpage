@@ -1,0 +1,172 @@
+CREATE OR REPLACE VIEW product_landing_view AS
+WITH RECURSIVE category_path AS (
+    -- Base case: categories with no parents
+    SELECT 
+        id,
+        name,
+        parent_id,
+        ARRAY[name]::VARCHAR[] as path_names,
+        ARRAY[id]::INTEGER[] as path_ids
+    FROM web_categories
+    WHERE parent_id IS NULL
+
+    UNION ALL
+
+    -- Recursive case: categories with parents
+    SELECT 
+        c.id,
+        c.name,
+        c.parent_id,
+        array_append(cp.path_names, c.name)::VARCHAR[] as path_names,
+        array_append(cp.path_ids, c.id)::INTEGER[] as path_ids
+    FROM web_categories c
+    INNER JOIN category_path cp ON c.parent_id = cp.id
+)
+SELECT 
+    p.id AS product_id,
+    p.name AS product_name,
+    p.description,
+    p.brand AS product_brand,
+    p.size_array,
+    p.category_id,
+    cp.path_names AS category_path,
+    cp.path_ids AS category_path_ids,
+    -- Aggregate variants with detailed information
+    JSON_AGG(
+        JSON_BUILD_OBJECT(
+            'variant_id', v.id,
+            'variant_size', v.size,
+            'variant_price', pr.price,
+            'variant_discount', pr.discount,
+            'variant_currency', pr.currency,
+            'is_multi', pr.is_multi,
+            'variant_order_index', v.order_index,
+            'has_package_options', v.has_package_options,
+            'variant_status', v.status,
+            'stock_status', st.stock_status,
+            'quantity', st.quantity,
+            'unit', st.unit,
+            'min_stock', st.min_stock,
+            'arrival_date', st.arrival_date,
+            'arrival_type', st.arrival_type,
+            'package_options', CASE 
+                WHEN v.has_package_options THEN (
+                    SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'package_status', po.status,
+                            'package_count', po.count,
+                            'package_discount', po.discount,
+                            'package_stock_status', po.stock_status,
+                            'package_order_index', po.order_index,
+                            'package_name', po.name
+                        )
+                    )
+                    FROM package_options po
+                    WHERE po.product_id = v.product_id
+                    AND po.status != 'not active'
+                )
+                ELSE NULL
+            END,
+            'multi_currency_prices', CASE 
+                WHEN pr.is_multi THEN (
+                    SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'currency', mcp.currency,
+                            'price', mcp.price
+                        )
+                    )
+                    FROM multi_currency_prices mcp
+                    WHERE mcp.product_id = v.product_id
+                )
+                ELSE NULL
+            END,
+            'images', (
+                SELECT JSON_AGG(
+                    JSON_BUILD_OBJECT(
+                        'url', i.url,
+                        'display_type', i.display_type,
+                        'alt_text', i.alt_text,
+                        'is_primary', i.is_primary,
+                        'order_index', i.order_index,
+                        'resolution', i.resolution,
+                        'format', i.format,
+                        'file_size', i.file_size
+                    )
+                )
+                FROM images i
+                WHERE i.display_id = p.id
+            )
+        )
+    ) AS variants
+FROM 
+    product_display p
+LEFT JOIN product_variants v 
+    ON p.id = v.display_id 
+    AND v.status != 'not active'
+LEFT JOIN prices pr 
+    ON v.product_id = pr.product_id
+LEFT JOIN stocks st 
+    ON v.product_id = st.product_id
+LEFT JOIN category_path cp 
+    ON p.category_id = cp.id
+WHERE 
+    p.status = 'active'
+GROUP BY 
+    p.id, p.category_id, cp.path_names, cp.path_ids;
+
+
+
+
+-- Create a new view to display products in card listings with images
+CREATE OR REPLACE VIEW cart_product_view AS
+SELECT 
+    pd.id AS product_id,
+    pd.name AS product_name,
+	pd.size_array,
+    pd.brand,
+    
+    -- Get the primary image from cart_images
+    (SELECT ci.url 
+     FROM cart_images ci 
+     WHERE ci.display_id = pd.id AND ci.is_primary = TRUE 
+     LIMIT 1) AS primary_image_url,
+
+    -- Get all variants with details
+    (
+        SELECT JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'size', pv.size,
+                'stock_status', s.stock_status,
+                'unit', s.unit,
+                'price', p.price,
+                'discount', p.discount,
+                'currency', p.currency,
+                'is_multi', p.is_multi,
+                
+                -- If is_multi is true, get multi-currency prices
+                'multi_currency_prices', 
+                CASE 
+                    WHEN p.is_multi THEN (
+                        SELECT JSON_AGG(
+                            JSON_BUILD_OBJECT(
+                                'currency', mcp.currency,
+                                'price', mcp.price
+                            )
+                        )
+                        FROM multi_currency_prices mcp
+                        WHERE mcp.product_id = pv.product_id
+                    )
+                    ELSE NULL 
+                END
+            )
+        )
+        FROM product_variants pv
+        LEFT JOIN stocks s ON s.product_id = pv.product_id
+        LEFT JOIN prices p ON p.product_id = pv.product_id
+        WHERE pv.display_id = pd.id 
+          AND pv.status != 'not active'  -- Only include active variants
+    ) AS variants
+FROM 
+    product_display pd
+WHERE 
+    pd.status = 'active'; -- Only include active products

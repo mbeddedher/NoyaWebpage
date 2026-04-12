@@ -1,0 +1,102 @@
+.dort-unsur-section {
+    width: 100%;
+    margin-top: 0;
+    padding-top: 0;
+  }
+  
+  .dort-unsur-div-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    margin: 0 0 20px 0;
+  }
+  
+  #dort-unsur-div {
+    display: flex;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px;
+    margin-bottom: 100px;
+  }
+  
+  .dort-unsur-div-item {
+    flex: 1;
+    height: 40vh;
+    min-height: 280px;
+    border-radius: 16px;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .dort-unsur-div-item-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  
+  .dort-unsur-div-item-title {
+    font-size: 26px;
+    font-weight: bold;
+    text-align: center;
+    margin: 0 0 12px 0;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    flex-shrink: 0;
+  }
+  
+  .dort-unsur-div-item-glass {
+    margin-top: auto;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  
+  .dort-unsur-div-item-text {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 12px 0;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+  
+  .dort-unsur-div-item-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  
+  .dort-unsur-div-item-link {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    text-decoration: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    padding: 6px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    transition: background 0.2s, border-color 0.2s;
+  }
+  
+  .dort-unsur-div-item-link:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.7);
+  }
+  

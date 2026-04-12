@@ -1,0 +1,123 @@
+.product-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+  color: inherit;
+  aspect-ratio: 28 / 55;
+}
+
+/* Image area keeps thumbnail ratio 28:42 at any card width */
+.product-image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 28 / 42;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  /* show entire thumb; don't crop when aspect differs */
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Horizontal slices: image area divided into N equal columns; hover selects image by column */
+.product-image-slices {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  cursor: pointer;
+}
+
+/* Dots: one per image, selected dot follows selected image */
+.product-card-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+.product-card-dots .product-card-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.product-card-dot:hover {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: #fff;
+}
+
+/* Selected dot = current image index */
+.product-card-dot.active {
+  background: #fff;
+  border-color: #fff;
+  transform: scale(1.25);
+}
+
+.placeholder-image {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 14px;
+}
+
+.product-info {
+  padding: 15px;
+}
+
+.product-name {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.product-brand {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.product-price {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2ecc71;
+}
+
+@media (max-width: 768px) {
+  .product-name {
+    font-size: 1rem;
+  }
+
+  .product-brand {
+    font-size: 0.8rem;
+  }
+} 

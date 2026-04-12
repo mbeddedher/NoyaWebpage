@@ -1,0 +1,371 @@
+CREATE TYPE unit_type AS ENUM ('m', 'cm', 'mm', 'inch', 'm2', 'kg', 'g','piece','pack');
+CREATE TYPE stock_status_type AS ENUM ('limited','unlimited','locked','infinite');
+CREATE TYPE stock_arrival_interval_type AS ENUM ('interval', 'weeky', 'monthly','date','inhereted','unknown');
+CREATE TYPE package_option_status_type AS ENUM ('active','not active','out of stock');
+CREATE TYPE package_option_stock_status_type AS ENUM ('divide','seperate','infinite');
+CREATE TYPE user_role_type AS ENUM ('admin', 'customer','servicer' 'guest');
+CREATE TYPE display_status_type AS ENUM ('active','diactive');
+CREATE TYPE link_type_enum AS ENUM ('cost', 'price');
+CREATE TYPE image_type AS ENUM ('thumbnail', 'gallery', 'zoomed');
+CREATE TYPE order_status AS ENUM (
+    'pending',       -- Order has been placed but not processed yet
+    'processing',    -- Order is being prepared
+    'shipped',       -- Order has been shipped
+    'delivered',     -- Order has been delivered to the customer
+    'canceled',      -- Order has been canceled
+    'returned'       -- Order has been returned by the customer
+);
+
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY, -- Auto-incrementing unique identifier
+    name VARCHAR(255) NOT NULL, -- Name of the category
+    description TEXT, -- Optional description of the category
+    parent_id INT, -- For subcategories (self-referencing foreign key)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for creation
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for last update
+    CONSTRAINT fk_parent_category FOREIGN KEY (parent_id) REFERENCES categories (id) ON DELETE SET NULL -- Foreign key constraint
+);
+
+CREATE TABLE web_categories (
+    id SERIAL PRIMARY KEY, -- Auto-incrementing unique identifier
+    name VARCHAR(255) NOT NULL, -- Name of the category
+    description TEXT, -- Optional description of the category
+    parent_id INT, -- For subcategories (self-referencing foreign key)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for creation
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for last update
+    CONSTRAINT fk_parent_category FOREIGN KEY (parent_id) REFERENCES web_categories (id) ON DELETE SET NULL -- Foreign key constraint
+);
+
+
+CREATE TABLE prices (
+    id SERIAL PRIMARY KEY, -- Unique identifier for price entry
+    product_id INT NOT NULL, -- Foreign key to reference the product
+    price DECIMAL(10, 2) NOT NULL, -- The price value
+    currency CHAR(3) NOT NULL, -- ISO 4217 currency code (e.g., USD, EUR)
+    is_multi BOOLEAN DEFAULT false,
+	is_linked BOOLEAN DEFAULT FALSE,
+   
+	is_component BOOLEAN DEFAULT FALSE,
+	cost DECIMAL(10, 2) NOT NULL,
+	vat DECIMAL(5, 2) NOT NULL,
+	profit DECIMAL(5, 2) NOT NULL,
+	discount DECIMAL(5, 2) NOT NULL DEFAULT 0,
+	has_difference BOOLEAN DEFAULT false,
+	supplier_discount DECIMAL(5, 2) NOT NULL DEFAULT 0,
+    CONSTRAINT fk_product_price FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE -- Foreign key constraint
+);
+
+CREATE TABLE price_diffs (
+    id SERIAL PRIMARY KEY, -- Unique identifier for price entry
+    product_id INT NOT NULL, -- Foreign key to reference the product
+    differece_type differece_type_enum,
+    is_percentage BOOLEAN,
+	difference DECIMAL(10, 2) DEFAULT 0,
+    CONSTRAINT fk_product_price FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE -- Foreign key constraint
+);
+
+CREATE TABLE stocks (
+    id SERIAL PRIMARY KEY,              -- Unique identifier for stock record
+    product_id INT NOT NULL,             -- Foreign key to reference the product
+	stock_status stock_status_type DEFAULT 'unlimited',
+    quantity INT DEFAULT 0,              -- Quantity of the product in stock
+	unit unit_type NOT NULL,
+	min_stock INT,
+	package_quantity INT DEFAULT 1,
+	is_linked BOOLEAN DEFAULT FALSE,
+	is_component BOOLEAN DEFAULT FALSE,
+	arrival_type stock_arrival_interval_type DEFAULT 'unknown',
+	arrival_date VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp for stock entry creation
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp for stock entry update
+    CONSTRAINT fk_product_stock FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE suppliers (
+    id SERIAL PRIMARY KEY,               -- Unique supplier ID
+    name VARCHAR(255) NOT NULL,           -- Supplier name
+    contact_name VARCHAR(255),            -- Contact person name
+    phone VARCHAR(20),                    -- Supplier phone number
+    email VARCHAR(255),                   -- Supplier email address
+    address TEXT,                          -- Supplier address
+    city VARCHAR(100),                    -- Supplier city
+    country VARCHAR(100),                 -- Supplier country
+    postal_code VARCHAR(20),              -- Supplier postal code
+    website VARCHAR(255),                 -- Supplier website
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for record creation
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Timestamp for last update
+);
+
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,               -- Auto-incrementing primary key
+	is_active BOOLEAN DEFAULT TRUE, -- Column to indicate if the product is active, default is TRUE
+	is_onsite BOOLEAN DEFAULT FALSE,
+	is_crafted BOOLEAN DEFAULT FALSE,
+    sku VARCHAR(50) UNIQUE NOT NULL,     -- Candidate key, must be unique
+    name VARCHAR(255) NOT NULL,          -- Product name
+	category_id INT NOT NULL,
+    brand VARCHAR(50) NOT NULL,
+    supplier_id INT NOT NULL,  
+    dimensions VARCHAR(50),             -- Dimensions of the product
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp when product is added
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp when product is updated
+	FOREIGN KEY (category_id) REFERENCES categories(id) 
+    ON DELETE SET NULL,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id)  -- Foreign key constraint to suppliers table
+    ON DELETE SET NULL
+);
+
+
+
+CREATE TABLE product_variants (
+    id SERIAL PRIMARY KEY,
+    product_id INT NOT NULL,                -- Link to the main product
+    order_index INT NOT NULL,
+	display_id INT NOT NULL,
+    size VARCHAR(50) NOT NULL,              -- Size (e.g., '1"', '2"')
+    status package_option_status_type DEFAULT 'active',
+	has_package_options BOOLEAN DEFAULT true,
+    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
+	FOREIGN KEY (display_id) REFERENCES product_display (id) ON DELETE CASCADE,
+    UNIQUE (product_id, size)               -- Ensure unique size for each product
+);
+
+
+CREATE TABLE package_options (
+    id SERIAL PRIMARY KEY,
+	status package_option_status_type NOT NULL DEFAULT 'active',
+    name VARCHAR(255) NOT NULL,
+    order_index INTEGER,
+    product_id INT NOT NULL,                -- Link to the main product
+    count INT NOT NULL,              -- Size (e.g., '1"', '2
+	discount DECIMAL(4, 2) DEFAULT 0,
+	stock_status package_option_stock_status_type NOT NULL DEFAULT 'divide',
+  	FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
+);
+
+
+
+
+
+
+CREATE TABLE product_display (
+    id SERIAL PRIMARY KEY,               -- Auto-incrementing primary key
+	status display_status_type NOT NULL,         -- Status for product
+    name VARCHAR(255) NOT NULL,          -- Display name
+    brand VARCHAR(255),
+	ranking DECIMAL(3, 2) DEFAULT 0,
+    description JSONB,                    -- Product description
+	has_varients BOOLEAN DEFAULT false,
+    category_id INTEGER NOT NULL,        -- Reference to categories table
+	keywords TEXT[], 					  -- Keywords for search
+    min_price DECIMAL(10,2),
+    max_price DECIMAL(10,2),
+    price_array DECIMAL(10,2)[],
+    size_array VARCHAR(50)[],
+    default_size VARCHAR(50),
+	popularity_score FLOAT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp when product is added
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp when product is updated
+	FOREIGN KEY (category_id) REFERENCES web_categories(id) 
+    ON DELETE SET NULL
+);
+
+CREATE TABLE images (
+    id SERIAL PRIMARY KEY, -- Unique identifier for each image
+    display_id INT NOT NULL, -- Reference to the associated product
+    url TEXT NOT NULL, -- URL or path to the image
+    is_primary BOOLEAN DEFAULT FALSE, -- Indicates if this is the primary image for the product
+    display_type image_type NOT NULL DEFAULT 'gallery', -- Type of image
+    alt_text VARCHAR(255), -- Text for accessibility and SEO
+    order_index INT DEFAULT 0, -- Display order for the image
+    file_size INT, -- Size of the image in kilobytes
+    resolution VARCHAR(50), -- Resolution of the image (e.g., 1920x1080)
+    format VARCHAR(10), -- Format of the image (e.g., JPEG, PNG)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for when the image was added
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for the last update
+    CONSTRAINT fk_display_image FOREIGN KEY (display_id) REFERENCES product_display(id) ON DELETE CASCADE -- Foreign key constraint
+);
+
+CREATE TABLE linked_prices (
+    id SERIAL PRIMARY KEY, -- Unique identifier for the link
+    parent_product_id INT NOT NULL, -- ID of the composite product
+    component_product_id INT NOT NULL, -- ID of the component product
+	link_type link_type_enum NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for creation
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for last update
+    CONSTRAINT fk_parent_product FOREIGN KEY (parent_product_id) REFERENCES products(id) ON DELETE CASCADE, -- Foreign key to parent product
+    CONSTRAINT fk_component_product FOREIGN KEY (component_product_id) REFERENCES products(id) ON DELETE CASCADE -- Foreign key to component product
+);
+
+
+CREATE TABLE crafted_products (
+    id SERIAL PRIMARY KEY, -- Unique identifier for the relationship
+    parent_product_id INT NOT NULL, -- ID of the composite product
+    component_product_id INT NOT NULL, -- ID of the component product
+    quantity DECIMAL(10, 2) NOT NULL DEFAULT 1, -- Quantity of the component in the composite product
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for creation
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for updates
+    CONSTRAINT fk_parent_product FOREIGN KEY (parent_product_id) REFERENCES products(id) ON DELETE CASCADE, -- Foreign key to parent product
+    CONSTRAINT fk_component_product FOREIGN KEY (component_product_id) REFERENCES products(id) ON DELETE CASCADE -- Foreign key to component product
+);
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY, -- Unique identifier for each user
+    first_name VARCHAR(50) NOT NULL, -- User's first name
+    last_name VARCHAR(50) NOT NULL, -- User's last name
+    email VARCHAR(100) UNIQUE NOT NULL, -- User's email address (unique for login)
+    password_hash TEXT NOT NULL, -- Hashed password for security
+    phone_number VARCHAR(20), -- Optional phone number
+    is_active BOOLEAN DEFAULT TRUE, -- Status indicating if the user account is active
+    role user_role_type NOT NULL DEFAULT 'customer', -- User role (e.g., admin, customer)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for account creation
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP -- Timestamp for last update
+);
+
+CREATE TABLE user_addresses (
+    id SERIAL PRIMARY KEY, -- Unique identifier for each address
+    user_id INT NOT NULL, -- Foreign key to reference the user
+    address TEXT NOT NULL, -- Full address
+    city VARCHAR(50) NOT NULL, -- City name
+    state VARCHAR(50), -- State/Region name (optional)
+    postal_code VARCHAR(20), -- Postal/ZIP code
+    country VARCHAR(50) NOT NULL, -- Country name
+    is_primary BOOLEAN DEFAULT FALSE, -- Marks the primary/default address
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for address creation
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for last update
+    CONSTRAINT fk_user_address FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE -- Ensure address is deleted with user
+);
+
+CREATE TABLE comments (
+    id SERIAL PRIMARY KEY, -- Unique identifier for each comment
+    product_id INT NOT NULL, -- Foreign key to reference the product being commented on
+    user_id INT NOT NULL, -- Foreign key to reference the user who made the comment
+    parent_id INT, -- Reference to the parent comment for replies (NULL for top-level comments)
+    content TEXT NOT NULL, -- The actual comment text
+    star INT CHECK (star BETWEEN 1 AND 5), -- Star rating (1 to 5)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for when the comment was created
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for last update
+    CONSTRAINT fk_comment_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE, -- Ensures comments are deleted if the product is deleted
+    CONSTRAINT fk_comment_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE, -- Ensures comments are deleted if the user is deleted
+    CONSTRAINT fk_comment_parent FOREIGN KEY (parent_id) REFERENCES comments (id) ON DELETE CASCADE -- Ensures replies are deleted if the parent comment is deleted
+);
+
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY, -- Unique identifier for each order
+    user_id INT NOT NULL, -- Foreign key to reference the user who placed the order
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for when the order was placed
+    status order_status DEFAULT 'pending', -- Status of the order (e.g., 'pending', 'shipped', 'completed', 'canceled')
+    total_amount DECIMAL(10, 2) NOT NULL, -- Total cost of the order
+    currency CHAR(3) NOT NULL, -- ISO 4217 currency code (e.g., USD, EUR)
+    payment_method VARCHAR(50), -- Payment method used (e.g., 'credit card', 'paypal')
+    shipping_address_id INT NOT NULL, -- Reference to a user's address
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for record creation
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for last update
+    CONSTRAINT fk_order_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE, -- Ensures orders are deleted if the user is deleted
+    CONSTRAINT fk_order_address FOREIGN KEY (shipping_address_id) REFERENCES user_addresses (id) ON DELETE CASCADE -- Ensures orders are deleted if the address is deleted
+);
+
+CREATE TABLE order_items (
+    id SERIAL PRIMARY KEY, -- Unique identifier for each item in an order
+    order_id INT NOT NULL, -- Foreign key to reference the order
+    product_id INT NOT NULL, -- Foreign key to reference the product
+    quantity INT NOT NULL, -- Number of units ordered
+    price DECIMAL(10, 2) NOT NULL, -- Price per unit at the time of order
+    total DECIMAL(10, 2) GENERATED ALWAYS AS (quantity * price) STORED, -- Total cost for the item
+    CONSTRAINT fk_order_item_order FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE, -- Ensures items are deleted if the order is deleted
+    CONSTRAINT fk_order_item_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE -- Ensures items are deleted if the product is deleted
+);
+
+-- Create currency_rates table
+CREATE TABLE currency_rates (
+    id SERIAL PRIMARY KEY,
+    from_currency VARCHAR(3) NOT NULL,
+    to_currency VARCHAR(3) NOT NULL,
+    rate DECIMAL(20, 6) NOT NULL,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(from_currency, to_currency, date)
+);
+
+-- Create index for faster lookups
+CREATE INDEX idx_currency_rates_date ON currency_rates(date);
+CREATE INDEX idx_currency_rates_currencies ON currency_rates(from_currency, to_currency);
+
+-- Example insert for common currency pairs
+INSERT INTO currency_rates (from_currency, to_currency, rate) VALUES
+('USD', 'EUR', 0.85),
+('EUR', 'USD', 1.18),
+('USD', 'TRY', 27.50),
+('TRY', 'USD', 0.036),
+('EUR', 'TRY', 32.35),
+('TRY', 'EUR', 0.031);
+
+-- Add is_multi column to prices table
+ALTER TABLE prices ADD COLUMN is_multi BOOLEAN DEFAULT false;
+
+-- Create multi_currency_prices table to store prices in different currencies
+CREATE TABLE multi_currency_prices (
+    id SERIAL PRIMARY KEY,
+    price_id INTEGER NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    price DECIMAL(20, 2) NOT NULL,
+    is_main BOOLEAN DEFAULT false,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMPs,
+    FOREIGN KEY (price_id) REFERENCES prices(id) ON DELETE CASCADE,
+    UNIQUE(price_id, currency)
+);
+
+CREATE TABLE cart_images (
+    id SERIAL PRIMARY KEY,
+    display_id INT REFERENCES product_display(id) ON DELETE CASCADE,
+    url TEXT NOT NULL,
+    width INT NOT NULL,
+    height INT NOT NULL,
+    format TEXT,
+    is_primary BOOLEAN DEFAULT FALSE,
+    order_index INT
+);
+
+
+
+-- Create index for faster lookups
+CREATE INDEX idx_multi_currency_prices_price_id ON multi_currency_prices(price_id);
+CREATE INDEX idx_multi_currency_prices_currency ON multi_currency_prices(currency);
+
+-- Create a function to validate multi_currency_prices insert
+CREATE OR REPLACE FUNCTION validate_multi_currency_price()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM prices 
+        WHERE id = NEW.price_id 
+        AND is_multi = true
+    ) THEN
+        RAISE EXCEPTION 'Cannot add multi-currency price for non-multi-currency price record';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger to validate multi_currency_prices insert
+CREATE TRIGGER check_multi_currency_price
+BEFORE INSERT ON multi_currency_prices
+FOR EACH ROW
+EXECUTE FUNCTION validate_multi_currency_price();
+
+-- Example of how to use:
+-- When inserting a price with multiple currencies:
+-- 1. First insert into prices table with the main currency
+-- 2. Then insert additional currencies into multi_currency_prices
+
+-- Example:
+-- INSERT INTO prices (product_id, price, currency, ...) VALUES (1, 100, 'USD', ...) RETURNING id;
+-- INSERT INTO multi_currency_prices (price_id, currency, price, is_main) VALUES 
+--   (1, 'USD', 100, true),
+--   (1, 'EUR', 85, false),
+--   (1, 'TRY', 2750, false);
