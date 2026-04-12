@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AddContentLayout from '../layouts/AddContentLayout';
 import { useAdminTabs } from '../../../context/AdminTabsContext';
 import { CategoryDetails } from './AddCategory';
@@ -21,12 +21,7 @@ export default function EditCategory({ categoryId }) {
   const [categoryData, setCategoryData] = useState(formData.categoryData);
   const [originalData, setOriginalData] = useState(formData.originalData);
 
-  useEffect(() => {
-    // Always fetch fresh data when categoryId changes
-    fetchCategoryData();
-  }, [categoryId]);
-
-  const fetchCategoryData = async () => {
+  const fetchCategoryData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/categories/${categoryId}`);
@@ -36,7 +31,7 @@ export default function EditCategory({ categoryId }) {
         throw new Error('Category not found');
       }
       const data = rows[0];
-      console.log("Fetched Data", data);
+      console.log('Fetched Data', data);
       setCategoryData(data);
       setOriginalData(data);
     } catch (err) {
@@ -44,7 +39,11 @@ export default function EditCategory({ categoryId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryId]);
+
+  useEffect(() => {
+    fetchCategoryData();
+  }, [fetchCategoryData]);
 
   // Save form data whenever it changes
   useEffect(() => {
@@ -55,7 +54,7 @@ export default function EditCategory({ categoryId }) {
         currentSection
       });
     }
-  }, [categoryData, originalData, currentSection, activeTabId, loading]);
+  }, [categoryData, originalData, currentSection, activeTabId, loading, formDataKey, saveTabFormData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

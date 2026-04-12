@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react';
+import OptimizedImage from '../../components/OptimizedImage';
 import { useUser } from '../../context/UserContext';
 import '../../styles/Orders.css';
 
@@ -74,7 +75,14 @@ const OrdersPage = () => {
               <div className="order-items">
                 {order.items.map((item) => (
                   <div key={item.id} className="order-item">
-                    <img src={item.image_url} alt={item.name} className="item-image" />
+                    <OptimizedImage
+                      src={item.image_url || '/no-image.svg'}
+                      alt={item.name}
+                      width={100}
+                      height={100}
+                      className="item-image"
+                      style={{ objectFit: 'cover' }}
+                    />
                     <div className="item-details">
                       <h4>{item.name}</h4>
                       <p className="item-quantity">Adet: {item.quantity}</p>

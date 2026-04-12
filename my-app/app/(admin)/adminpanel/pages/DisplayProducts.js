@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DisplayContentLayout from '../layouts/DisplayContentLayout';
 import { useAdminTabs } from '../../../context/AdminTabsContext';
 
@@ -39,16 +39,16 @@ export default function DisplayProducts() {
         products
       });
     }
-  }, [filters, pagination, products, activeTabId, loading]);
+  }, [filters, pagination, products, activeTabId, loading, saveTabFormData]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       console.log('Fetching products with params:', {
         page: pagination.currentPage,
         limit: pagination.itemsPerPage,
         filters
       });
-      
+
       setLoading(true);
       const queryParams = new URLSearchParams({
         page: pagination.currentPage,
@@ -68,22 +68,20 @@ export default function DisplayProducts() {
       });
 
       console.log('API Response status:', response.status);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch products');
       }
-      
+
       const data = await response.json();
       console.log('Received data:', data);
 
-      // Check if data has the expected structure
       if (!data || (!Array.isArray(data) && !Array.isArray(data.products))) {
         console.error('Invalid data format received:', data);
         throw new Error('Invalid data format received from server');
       }
 
-      // Handle both array and object with products property
       const productsList = Array.isArray(data) ? data : data.products || [];
       const totalItems = data.total || productsList.length || 0;
 
@@ -101,22 +99,12 @@ export default function DisplayProducts() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.currentPage, pagination.itemsPerPage, filters]);
 
-  // Initial fetch when component mounts
   useEffect(() => {
-    console.log('Component mounted, fetching products...');
+    console.log('Fetching products (mount or filters/pagination change)...');
     fetchProducts();
-  }, []); // Empty dependency array for initial fetch
-
-  // Fetch when filters or pagination change
-  useEffect(() => {
-    // Skip the initial fetch since we already do it in the mount effect
-    if (!loading) {
-      console.log('Filters or pagination changed, fetching products...');
-      fetchProducts();
-    }
-  }, [filters, pagination.currentPage, pagination.itemsPerPage]);
+  }, [fetchProducts]);
 
   const handleSearch = (searchTerm) => {
     console.log('Search term:', searchTerm);

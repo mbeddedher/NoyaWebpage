@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AddContentLayout from '../layouts/AddContentLayout';
 import { useAdminTabs } from '../../../context/AdminTabsContext';
 import { CategoryForm } from './AddWebCategory';
@@ -22,12 +22,7 @@ export default function EditWebCategory({ categoryId }) {
   const [categoryData, setCategoryData] = useState(formData.categoryData);
   const [originalData, setOriginalData] = useState(formData.originalData);
 
-  useEffect(() => {
-    // Always fetch fresh data when categoryId changes
-    fetchCategoryData();
-  }, [categoryId]);
-
-  const fetchCategoryData = async () => {
+  const fetchCategoryData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/web-categories/${categoryId}`);
@@ -45,7 +40,7 @@ export default function EditWebCategory({ categoryId }) {
         closeTab(`edit-web-category-${categoryId}`);
         return;
       }
-      
+
       setCategoryData(data);
       setOriginalData(data);
     } catch (err) {
@@ -53,7 +48,11 @@ export default function EditWebCategory({ categoryId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryId, closeTab]);
+
+  useEffect(() => {
+    fetchCategoryData();
+  }, [fetchCategoryData]);
 
   // Save form data whenever it changes
   useEffect(() => {
@@ -64,7 +63,7 @@ export default function EditWebCategory({ categoryId }) {
         currentSection
       });
     }
-  }, [categoryData, originalData, currentSection, activeTabId, loading]);
+  }, [categoryData, originalData, currentSection, activeTabId, loading, formDataKey, saveTabFormData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

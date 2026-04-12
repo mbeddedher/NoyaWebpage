@@ -9,7 +9,8 @@ import { trackProductEvent } from '../../../lib/productEvents';
 
 import '../../../styles/product.css'
 import Link from 'next/link';
-import { useStyleRegistry } from "styled-jsx";
+import Image from 'next/image';
+import OptimizedImage from '../../../components/OptimizedImage';
 
 // Move ImageNavigator outside of ProductPage
 const ImageNavigator = React.memo(({ images }) => {
@@ -26,23 +27,32 @@ const ImageNavigator = React.memo(({ images }) => {
   if (!images || images.length === 0) {
     return (
       <div className="image-navigator">
-        <div className="main-image">
-          <img src="/no-image.svg" alt="No image available" />
+        <div className="main-image-wrapper">
+          <OptimizedImage
+            src="/no-image.svg"
+            alt="No image available"
+            fill
+            sizes="(max-width: 768px) 100vw, 560px"
+            style={{ objectFit: 'contain' }}
+          />
         </div>
       </div>
     );
   }
 
+  const primaryIndex = images.findIndex((img) => img.is_primary);
+  const lcpIndex = primaryIndex !== -1 ? primaryIndex : 0;
+
   return (
     <div className="image-navigator">
-      <div className="main-image">
-        <img
+      <div className="main-image-wrapper">
+        <OptimizedImage
           src={images[selectedImage]?.url || '/no-image.svg'}
           alt={images[selectedImage]?.alt_text || 'Product image'}
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = '/no-image.svg';
-          }}
+          fill
+          sizes="(max-width: 768px) 100vw, 560px"
+          priority={selectedImage === lcpIndex}
+          style={{ objectFit: 'contain' }}
         />
       </div>
       <div className="thumbnail-strip">
@@ -51,14 +61,14 @@ const ImageNavigator = React.memo(({ images }) => {
             key={`${image.id}-${index}`}
             className={`thumbnail ${selectedImage === index ? 'selected' : ''}`}
             onClick={() => setSelectedImage(index)}
+            role="presentation"
           >
-            <img
+            <OptimizedImage
               src={image.url || '/no-image.svg'}
               alt={image.alt_text || `Product thumbnail ${index + 1}`}
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/no-image.svg';
-              }}
+              width={60}
+              height={60}
+              style={{ objectFit: 'cover', borderRadius: '0.25rem' }}
             />
           </div>
         ))}
@@ -66,6 +76,8 @@ const ImageNavigator = React.memo(({ images }) => {
     </div>
   );
 });
+
+ImageNavigator.displayName = 'ImageNavigator';
 
 const ProductPage = () => {
   const [activeTab, setActiveTab] = useState("details");
@@ -133,7 +145,9 @@ const ProductPage = () => {
             </Link>
             
             {/* Display an arrow if it's not the last item */}
-            {index < categories.length - 1 && <img className="arrow-icon" src="/category_arrow.svg" alt=">" />}
+            {index < categories.length - 1 && (
+              <Image className="arrow-icon" src="/category_arrow.svg" alt="" width={14} height={14} />
+            )}
           </React.Fragment>
         ))}
       </div>
@@ -215,7 +229,7 @@ const ProductPage = () => {
     if (id) {
       fetchProduct();
     }
-  }, [id]);
+  }, [id, userId]);
 
   const handleQuantityChange = (increment) => {
     setQuantity(prev => Math.max(1, prev + increment));
@@ -281,11 +295,13 @@ const ProductPage = () => {
           <div className="product-rating">
             <div className="stars">
               {[...Array(5)].map((_, index) => (
-                <img
+                <Image
                   key={`star-${index}`}
                   className="star"
-                  src={index < (product.rating || 0) ? "/star-filled.svg" : "/star.svg"}
+                  src={index < (product.rating || 0) ? '/star-filled.svg' : '/star.svg'}
                   alt={`Star ${index + 1}`}
+                  width={22}
+                  height={22}
                 />
               ))}
             </div>
@@ -304,7 +320,7 @@ const ProductPage = () => {
                 <p className="price">
                   {selectedVariant.price.amount}
                 </p>
-                <img className="tl" src="/tl.svg" alt="TL" />
+                <Image className="tl" src="/tl.svg" alt="TL" width={18} height={18} />
               </div>
               <span className="kdv">KDV Dahil</span>
             </div>

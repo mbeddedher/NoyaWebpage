@@ -24,11 +24,11 @@ export default function LoginPage() {
   const router = useRouter();
   const { isLoggedIn, login } = useUser();
 
-useEffect(() => {
-  if(isLoggedIn){
-    //router.push('/');
-  }
-},[])
+  useEffect(() => {
+    if (isLoggedIn) {
+      // router.push('/');
+    }
+  }, [isLoggedIn]);
 
 
   const handleLogin = async (e) => {

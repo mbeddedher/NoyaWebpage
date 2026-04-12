@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react';
+import OptimizedImage from '../../components/OptimizedImage';
 import { useUser } from '../../context/UserContext';
 import '../../styles/Reviews.css';
 
@@ -52,7 +53,14 @@ const ReviewsPage = () => {
             <div key={review.id} className="review-card">
               <div className="review-header">
                 <div className="product-info">
-                  <img src={review.product_image} alt={review.product_name} className="product-image" />
+                  <OptimizedImage
+                    src={review.product_image || '/no-image.svg'}
+                    alt={review.product_name}
+                    width={80}
+                    height={80}
+                    className="product-image"
+                    style={{ objectFit: 'cover' }}
+                  />
                   <h3>{review.product_name}</h3>
                 </div>
                 <div className="review-date">

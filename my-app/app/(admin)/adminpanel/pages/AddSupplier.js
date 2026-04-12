@@ -156,7 +156,7 @@ export default function AddSupplier() {
         supplierData
       });
     }
-  }, [supplierData, activeTabId, loading]);
+  }, [supplierData, activeTabId, loading, saveTabFormData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

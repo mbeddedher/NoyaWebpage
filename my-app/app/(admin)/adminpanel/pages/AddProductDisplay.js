@@ -1,8 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import AddContentLayout from '../layouts/AddContentLayout';
 import { useAdminTabs } from '../../../context/AdminTabsContext';
+import OptimizedImage from '../../../components/OptimizedImage';
 
 // Basic Details Component
 export function BasicDetails({ data, onChange }) {
@@ -19,6 +20,13 @@ export function BasicDetails({ data, onChange }) {
 
   // Add state for size array display
   const [sizeArray, setSizeArray] = useState(data.size_array || []);
+
+  const dataRef = useRef(data);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    dataRef.current = data;
+    onChangeRef.current = onChange;
+  });
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -56,15 +64,14 @@ export function BasicDetails({ data, onChange }) {
   }, []);
 
   useEffect(() => {
-    // Update size array when variants change
-    if (data.variants) {
-      const uniqueSizes = [...new Set(data.variants
-        .filter(v => v.size)  // Filter out variants without size
+    const d = dataRef.current;
+    if (d.variants) {
+      const uniqueSizes = [...new Set(d.variants
+        .filter(v => v.size)
         .map(v => v.size.trim())
       )];
       setSizeArray(uniqueSizes);
-      // Update the main data with new size array
-      onChange({ ...data, size_array: uniqueSizes });
+      onChangeRef.current({ ...d, size_array: uniqueSizes });
     }
   }, [data.variants]);
 
@@ -338,6 +345,13 @@ export function ProductVariants({ data, onChange }) {
   const [error, setError] = useState(null);
   const [currencies, setCurrencies] = useState([]);
 
+  const dataRef = useRef(data);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    dataRef.current = data;
+    onChangeRef.current = onChange;
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -378,7 +392,7 @@ export function ProductVariants({ data, onChange }) {
           }
           const currencyData = await currencyRes.json();
           setCurrencies(currencyData);
-          onChange({ ...data, currencies: currencyData });
+          onChangeRef.current({ ...dataRef.current, currencies: currencyData });
           
           // Map prices
           const pricesMap = {};
@@ -394,7 +408,7 @@ export function ProductVariants({ data, onChange }) {
                   multi_currency_prices: price.multi_currency_prices,
 
                 };
-                onChange({ ...data, prices: pricesMap });
+                onChangeRef.current({ ...dataRef.current, prices: pricesMap });
               }
             });
           }
@@ -995,18 +1009,15 @@ export function ProductImages({ data, onChange }) {
           
           return (
             <div key={index} className="image-item">
-              <img 
-                src={finalUrl}
-                alt={image.alt_text || 'Product image'} 
-                onError={(e) => {
-                  console.error(`Error loading image ${index}:`, { 
-                    originalUrl: imageUrl,
-                    finalUrl: finalUrl,
-                    finalSrc: e.target.src,
-                    error: e.error
-                  });
-                }}
-              />
+              <div className="image-item__media">
+                <OptimizedImage
+                  src={finalUrl}
+                  alt={image.alt_text || 'Product image'}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 280px"
+                  style={{ objectFit: 'cover' }}
+                />
+              </div>
               <div className="image-controls">
                 <div className="control-row">
                   <label className="primary-checkbox">
@@ -1153,11 +1164,13 @@ export function ProductImages({ data, onChange }) {
           grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
         }
 
-        .image-item img {
+        .image-item__media {
+          position: relative;
           width: 100%;
-          height: auto;
-          border-radius: 4px;
+          aspect-ratio: 1;
           margin-bottom: 10px;
+          border-radius: 4px;
+          overflow: hidden;
         }
 
         .image-info {
@@ -1263,7 +1276,7 @@ export default function AddProductDisplay() {
     if (formData.currentSection) {
       setCurrentSection(formData.currentSection);
     }
-  }, []);
+  }, [activeTabId, formData.currentSection]);
 
   // Save form data whenever it changes
   useEffect(() => {
@@ -1273,7 +1286,7 @@ export default function AddProductDisplay() {
         currentSection
       });
     }
-  }, [displayData, currentSection, activeTabId, loading]);
+  }, [displayData, currentSection, activeTabId, loading, saveTabFormData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

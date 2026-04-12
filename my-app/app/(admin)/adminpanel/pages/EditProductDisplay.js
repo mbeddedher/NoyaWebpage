@@ -88,6 +88,7 @@ export default function EditProductDisplay({ id }) {
     if (!formData.displayData) {
       fetchProductDisplay();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- id + saved display gate; formData in deps would over-fetch
   }, [id]);
 
   // Restore saved section if available
@@ -95,7 +96,7 @@ export default function EditProductDisplay({ id }) {
     if (formData.currentSection) {
       setCurrentSection(formData.currentSection);
     }
-  }, []);
+  }, [activeTabId, formData.currentSection]);
 
   // Save form data whenever it changes
   useEffect(() => {
@@ -105,7 +106,7 @@ export default function EditProductDisplay({ id }) {
         currentSection
       });
     }
-  }, [displayData, currentSection, activeTabId, initialLoading]);
+  }, [displayData, currentSection, activeTabId, initialLoading, saveTabFormData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

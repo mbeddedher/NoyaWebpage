@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 const AdminTabsContext = createContext();
 
@@ -219,6 +219,10 @@ const initialFormStates = {
   }
 };
 
+function isEditComponent(component) {
+  return ['EditCategory', 'EditCraftedProduct', 'EditWebCategory', 'EditProduct', 'EditProductDisplay', 'EditUser', 'EditSupplier'].includes(component);
+}
+
 export function AdminTabsProvider({ children }) {
   // Main tabs state with formData included
   const [tabsState, setTabsState] = useState({
@@ -252,114 +256,118 @@ export function AdminTabsProvider({ children }) {
     }
   }, [tabsState]);
 
-  const isEditComponent = (component) => {
-    return ['EditCategory','EditCraftedProduct', 'EditWebCategory', 'EditProduct', 'EditProductDisplay', 'EditUser', 'EditSupplier'].includes(component);
-  };
+  const getTabFormData = useCallback(
+    (tabId) => tabsState.formData[tabId] || {},
+    [tabsState.formData]
+  );
 
-  // Get form data for a specific tab
-  const getTabFormData = (tabId) => {
-    return tabsState.formData[tabId] || {};
-  };
-
-  // Save form data for a specific tab
-  const saveTabFormData = (tabId, data) => {
-    setTabsState(prev => ({
+  const saveTabFormData = useCallback((tabId, data) => {
+    setTabsState((prev) => ({
       ...prev,
       formData: {
         ...prev.formData,
-        [tabId]: data
-      }
+        [tabId]: data,
+      },
     }));
-  };
+  }, []);
 
-  const openTab = (newTab) => {
+  const openTab = useCallback((newTab) => {
     if (!newTab.id) {
       console.error('Tab must have an ID');
       return;
     }
 
-    // Check if exact same tab exists
-    const exactTab = tabsState.tabs.find(tab => tab.id === newTab.id);
-    if (exactTab) {
-      setTabsState(prev => ({
+    setTabsState((prev) => {
+      const exactTab = prev.tabs.find((tab) => tab.id === newTab.id);
+      if (exactTab) {
+        return { ...prev, activeTabId: exactTab.id };
+      }
+
+      if (!isEditComponent(newTab.component)) {
+        const existingTab = prev.tabs.find((tab) => tab.component === newTab.component);
+        if (existingTab) {
+          return { ...prev, activeTabId: existingTab.id };
+        }
+      }
+
+      if (prev.tabs.length >= MAX_TABS) {
+        alert(`Maximum ${MAX_TABS} tabs allowed. Please close some tabs first.`);
+        return prev;
+      }
+
+      const initialFormData = initialFormStates[newTab.component] || {};
+
+      return {
         ...prev,
-        activeTabId: exactTab.id
-      }));
-      return;
-    }
+        tabs: [...prev.tabs, newTab],
+        activeTabId: newTab.id,
+        formData: {
+          ...prev.formData,
+          [newTab.id]: initialFormData,
+        },
+      };
+    });
+  }, []);
 
-    // For non-edit tabs, check if tab with same component exists
-    if (!isEditComponent(newTab.component)) {
-      const existingTab = tabsState.tabs.find(tab => tab.component === newTab.component);
-      if (existingTab) {
-        setTabsState(prev => ({
-          ...prev,
-          activeTabId: existingTab.id
-        }));
-        return;
-      }
-    }
-
-    // Initialize new tab with default form state
-    const initialFormData = initialFormStates[newTab.component] || {};
-    
-    // Check if max tabs reached
-    if (tabsState.tabs.length >= MAX_TABS) {
-      alert(`Maximum ${MAX_TABS} tabs allowed. Please close some tabs first.`);
-      return;
-    }
-
-    setTabsState(prev => ({
-      ...prev,
-      tabs: [...prev.tabs, newTab],
-      activeTabId: newTab.id,
-      formData: {
-        ...prev.formData,
-        [newTab.id]: initialFormData
-      }
-    }));
-  };
-
-  const closeTab = (tabId) => {
-    setTabsState(prev => {
-      const newTabs = prev.tabs.filter(tab => tab.id !== tabId);
+  const closeTab = useCallback((tabId) => {
+    setTabsState((prev) => {
+      const newTabs = prev.tabs.filter((tab) => tab.id !== tabId);
       const newFormData = { ...prev.formData };
       delete newFormData[tabId];
 
       return {
         ...prev,
         tabs: newTabs,
-        activeTabId: prev.activeTabId === tabId 
-          ? (newTabs[newTabs.length - 1]?.id || null)
-          : prev.activeTabId,
-        formData: newFormData
+        activeTabId:
+          prev.activeTabId === tabId ? newTabs[newTabs.length - 1]?.id || null : prev.activeTabId,
+        formData: newFormData,
       };
     });
-  };
+  }, []);
 
-  const updateTabLabel = (tabId, newLabel) => {
-    setTabsState(prev => ({
+  const updateTabLabel = useCallback((tabId, newLabel) => {
+    setTabsState((prev) => ({
       ...prev,
-      tabs: prev.tabs.map(tab => 
-        tab.id === tabId 
-          ? { ...tab, label: newLabel }
-          : tab
-      )
+      tabs: prev.tabs.map((tab) =>
+        tab.id === tabId ? { ...tab, label: newLabel } : tab
+      ),
     }));
-  };
+  }, []);
 
-  const value = {
-    tabs: tabsState.tabs,
-    activeTabId: tabsState.activeTabId,
-    setActiveTabId: (id) => setTabsState(prev => ({ ...prev, activeTabId: id })),
-    openTab,
-    closeTab,
-    updateTabLabel,
-    pendingEditTab: tabsState.pendingEditTab,
-    setPendingEditTab: (tab) => setTabsState(prev => ({ ...prev, pendingEditTab: tab })),
-    getTabFormData,
-    saveTabFormData
-  };
+  const setActiveTabId = useCallback((id) => {
+    setTabsState((prev) => ({ ...prev, activeTabId: id }));
+  }, []);
+
+  const setPendingEditTab = useCallback((tab) => {
+    setTabsState((prev) => ({ ...prev, pendingEditTab: tab }));
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      tabs: tabsState.tabs,
+      activeTabId: tabsState.activeTabId,
+      setActiveTabId,
+      openTab,
+      closeTab,
+      updateTabLabel,
+      pendingEditTab: tabsState.pendingEditTab,
+      setPendingEditTab,
+      getTabFormData,
+      saveTabFormData,
+    }),
+    [
+      tabsState.tabs,
+      tabsState.activeTabId,
+      tabsState.pendingEditTab,
+      setActiveTabId,
+      openTab,
+      closeTab,
+      updateTabLabel,
+      setPendingEditTab,
+      getTabFormData,
+      saveTabFormData,
+    ]
+  );
 
   return (
     <AdminTabsContext.Provider value={value}>

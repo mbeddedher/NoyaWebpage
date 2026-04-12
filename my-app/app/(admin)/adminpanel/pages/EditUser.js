@@ -4,7 +4,7 @@ import AddContentLayout from '../layouts/AddContentLayout';
 import { useAdminTabs } from '../../../context/AdminTabsContext';
 
 export default function EditUser({ userId }) {
-  const { closeTab, pendingEditTab, setPendingEditTab, updateTabLabel, setActiveTabId, tabs } = useAdminTabs();
+  const { closeTab, updateTabLabel, openTab } = useAdminTabs();
   const [userData, setUserData] = useState({
     first_name: '',
     last_name: '',
@@ -40,7 +40,7 @@ export default function EditUser({ userId }) {
     };
 
     fetchUser();
-  }, [userId]);
+  }, [userId, closeTab]);
 
   // Check for modifications
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function EditUser({ userId }) {
       const newLabel = `Edit User - ${userData.first_name} ${userData.last_name}${hasChanges ? ' *' : ''}`;
       updateTabLabel('edit-user', newLabel);
     }
-  }, [userData, originalData]);
+  }, [userData, originalData, updateTabLabel]);
 
   // Listen for save event
   useEffect(() => {
@@ -79,9 +79,7 @@ export default function EditUser({ userId }) {
           
           // If there's a pending tab in the event, open it
           if (event.detail.pendingTab) {
-            const { pendingTab } = event.detail;
-            setTabs(prev => [...prev, pendingTab]);
-            setActiveTabId(pendingTab.id);
+            openTab(event.detail.pendingTab);
           }
         } catch (error) {
           console.error('Error updating user:', error);
@@ -92,7 +90,7 @@ export default function EditUser({ userId }) {
 
     window.addEventListener('saveEditTab', handleSaveEvent);
     return () => window.removeEventListener('saveEditTab', handleSaveEvent);
-  }, [userData, userId]);
+  }, [userData, userId, closeTab, openTab]);
 
   const handleSubmit = async () => {
     try {

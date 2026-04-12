@@ -1,6 +1,5 @@
 import { connectToDatabase } from '~/lib/db';
 import { NextResponse } from 'next/server';
-import prisma from '../../../lib/prisma';
 
 export async function GET(request) {
   try {
@@ -411,45 +410,33 @@ export async function PATCH(request) {
 export async function searchProducts(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('query');
+    const q = searchParams.get('query');
 
-    if (!query) {
+    if (!q || !String(q).trim()) {
       return NextResponse.json([]);
     }
 
-    const products = await prisma.product.findMany({
-      where: {
-        OR: [
-          {
-            name: {
-              contains: query,
-              mode: 'insensitive',
-            },
-          },
-          {
-            description: {
-              contains: query,
-              mode: 'insensitive',
-            },
-          },
-          {
-            brand: {
-              contains: query,
-              mode: 'insensitive',
-            },
-          },
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        imageUrl: true,
-      },
-      take: 10,
-    });
-
-    return NextResponse.json(products);
+    const pattern = `%${String(q).trim()}%`;
+    const client = await connectToDatabase();
+    try {
+      const result = await client.query(
+        `SELECT DISTINCT ON (p.id)
+          p.id,
+          p.name,
+          pr.price,
+          NULL::text AS "imageUrl"
+        FROM products p
+        LEFT JOIN prices pr ON pr.product_id = p.id
+        WHERE p.name ILIKE $1
+           OR COALESCE(p.brand, '') ILIKE $1
+        ORDER BY p.id, pr.id NULLS LAST
+        LIMIT 10`,
+        [pattern]
+      );
+      return NextResponse.json(result.rows);
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error('Products search error:', error);
     return NextResponse.json({ error: 'Ürün araması sırasında bir hata oluştu' }, { status: 500 });

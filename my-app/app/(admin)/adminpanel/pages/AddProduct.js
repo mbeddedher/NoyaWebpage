@@ -622,7 +622,7 @@ export default function AddProduct() {
     if (formData.currentSection) {
       setCurrentSection(formData.currentSection);
     }
-  }, []);
+  }, [activeTabId, formData.currentSection]);
 
   // Save form data whenever it changes
   useEffect(() => {
@@ -632,7 +632,7 @@ export default function AddProduct() {
         currentSection
       });
     }
-  }, [productData, currentSection, activeTabId, loading]);
+  }, [productData, currentSection, activeTabId, loading, saveTabFormData]);
 
   const sections = {
     details: {

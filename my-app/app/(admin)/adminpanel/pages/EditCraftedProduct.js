@@ -92,6 +92,7 @@ export default function EditCraftedProduct({ productId }) {
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/tab gate; full deps would refetch on every form edit
   }, [productId, activeTabId]);
 
   // Save form data whenever it changes
@@ -102,7 +103,7 @@ export default function EditCraftedProduct({ productId }) {
         currentSection
       });
     }
-  }, [productData, currentSection, activeTabId, loading]);
+  }, [productData, currentSection, activeTabId, loading, saveTabFormData]);
 
   const sections = {
     details: {

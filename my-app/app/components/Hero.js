@@ -1,5 +1,6 @@
 'use client';
 
+import OptimizedImage from './OptimizedImage';
 import '../styles/Hero.css';
 
 const HERO_IMAGES = [
@@ -29,12 +30,14 @@ export default function Hero() {
       <div className="hero-stack">
         {HERO_IMAGES.map((img, i) => (
           <div key={i} className={`hero-item hero-item--${img.size}`}>
-            <img
+            <OptimizedImage
               src={img.src}
               alt={img.alt}
+              fill
               className="hero-img"
-              loading="eager"
-              decoding="async"
+              sizes="(max-width: 768px) 100vw, 60vw"
+              priority={i === 0}
+              style={{ objectFit: 'cover', objectPosition: 'center center' }}
             />
             {HOTSPOT_IMAGES[i].map((hotspot, i) => (
             <button className={`hotspot hotspot-${i+1}`} key={i} style={{ left: `${hotspot.cord[0]}%`, top: `${hotspot.cord[1]}%` }} aria-hidden="true">

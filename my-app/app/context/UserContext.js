@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 
@@ -18,13 +18,13 @@ export const UserProvider = ({ children }) => {
   const [userId, setUserId] = useState(null);
   const router = useRouter();
 
-  const fetchUserId = async () => {
+  const fetchUserId = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me', { credentials: 'include' });
       if (res.ok) {
-        const { userId } = await res.json();
-        setUserId(userId);
-        return userId;
+        const { userId: uid } = await res.json();
+        setUserId(uid);
+        return uid;
       }
       setUserId(null);
       return null;
@@ -32,13 +32,13 @@ export const UserProvider = ({ children }) => {
       setUserId(null);
       return null;
     }
-  };
+  }, []);
 
-  const checkLoginStatus = async () => {
+  const checkLoginStatus = useCallback(async () => {
     try {
       const token = Cookies.get('token');
       console.log('Checking token in context:', token);
-      
+
       if (!token) {
         console.log('No token found, setting logged out');
         setIsLoggedIn(false);
@@ -56,13 +56,13 @@ export const UserProvider = ({ children }) => {
       setUserId(null);
       return false;
     }
-  };
+  }, [fetchUserId]);
 
   // Initial check on mount
   useEffect(() => {
     console.log('UserContext mounted, checking initial login status');
     checkLoginStatus();
-  }, []);
+  }, [checkLoginStatus]);
 
   // Check whenever token changes
   useEffect(() => {
@@ -74,7 +74,7 @@ export const UserProvider = ({ children }) => {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [checkLoginStatus]);
 
   // Login function
   const login = async(e, email, password) => {

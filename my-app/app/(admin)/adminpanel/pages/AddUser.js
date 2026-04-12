@@ -223,7 +223,7 @@ export default function AddUser() {
         userData
       });
     }
-  }, [userData, activeTabId, loading]);
+  }, [userData, activeTabId, loading, saveTabFormData]);
 
   // Check email availability when email changes
   const checkEmail = async (email) => {

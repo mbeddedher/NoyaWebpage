@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export default function CraftedProductPricing({ data, onChange }) {
   const [priceMode, setPriceMode] = useState(data.pricing?.mode || 'manual');
@@ -7,7 +7,16 @@ export default function CraftedProductPricing({ data, onChange }) {
   const [currencyRates, setCurrencyRates] = useState({});
   const [multiCurrencyPrices, setMultiCurrencyPrices] = useState({});
 
-  const calculateTotalFromComponents = (type) => {
+  const onChangeRef = useRef(onChange);
+  const dataRef = useRef(data);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
+  const calculateTotalFromComponents = useCallback((type) => {
     if (!data.components) return {};
     
     // Group totals by currency first
@@ -57,7 +66,15 @@ export default function CraftedProductPricing({ data, onChange }) {
       byCurrency: totals,
       total: parseFloat(finalTotal.toFixed(2))
     };
-  };
+  }, [
+    data.components,
+    data.pricing?.currency,
+    data.pricing?.has_difference,
+    data.pricing?.difference_value,
+    data.pricing?.difference_type,
+    priceMode,
+    currencyRates,
+  ]);
 
   const calculateSellingPrice = (cost) => {
     const profit = data.pricing?.profit || 0;
@@ -76,7 +93,7 @@ export default function CraftedProductPricing({ data, onChange }) {
     return price;
   };
 
-  const calculateMeanValue = (components, field) => {
+  const calculateMeanValue = useCallback((components, field) => {
     if (!components || components.length === 0) return 0;
     
     const totalQuantity = components.reduce((sum, component) => {
@@ -95,7 +112,7 @@ export default function CraftedProductPricing({ data, onChange }) {
     console.log('Weighted Sum:', weightedSum);
 
     return parseFloat((weightedSum / totalQuantity).toFixed(2));
-  };
+  }, []);
 
   useEffect(() => {
     fetchCurrencyRates();
@@ -114,12 +131,13 @@ export default function CraftedProductPricing({ data, onChange }) {
 
   // Recalculate price whenever components, profit, VAT, or discount changes
   useEffect(() => {
+    const d = dataRef.current;
     if (priceMode === 'manual') {
       // Get base values
-      const cost = parseFloat(data.pricing?.cost) || 0;
-      const profit = parseFloat(data.pricing?.profit) || 0;
-      const vat = parseFloat(data.pricing?.vat) || 0; 
-      const discount = parseFloat(data.pricing?.discount) || 0;
+      const cost = parseFloat(d.pricing?.cost) || 0;
+      const profit = parseFloat(d.pricing?.profit) || 0;
+      const vat = parseFloat(d.pricing?.vat) || 0; 
+      const discount = parseFloat(d.pricing?.discount) || 0;
 
       // Calculate price with profit
       let price = cost * (1 + (profit / 100));
@@ -134,10 +152,10 @@ export default function CraftedProductPricing({ data, onChange }) {
       setCalculatedPrice(price);
 
       // Update data with calculated price
-      onChange({
-        ...data,
+      onChangeRef.current({
+        ...d,
         pricing: {
-          ...data.pricing,
+          ...d.pricing,
           is_multi: false,
           total_price: price
         }
@@ -148,17 +166,17 @@ export default function CraftedProductPricing({ data, onChange }) {
       let totalPrice = 0;
       // Calculate prices for each currency
       Object.entries(costsByCurrency.byCurrency).forEach(([currency, cost]) => {
-        const profit = data.pricing?.profit || 0;
-        const vat = data.pricing?.vat || 0;
-        const discount = data.pricing?.discount || 0;
+        const profit = d.pricing?.profit || 0;
+        const vat = d.pricing?.vat || 0;
+        const discount = d.pricing?.discount || 0;
 
         let price = cost * (1 + (profit / 100));
         price = price * (1 + (vat / 100));
         price = price * (1 - (discount / 100));
-        if(currency === data.pricing?.currency){
+        if(currency === d.pricing?.currency){
           totalPrice += price;
         }else{
-          const rate = currencyRates[`${currency}_${data.pricing?.currency}`];
+          const rate = currencyRates[`${currency}_${d.pricing?.currency}`];
           totalPrice += price * (rate ? parseFloat(rate) : 0);
         }
 
@@ -170,10 +188,10 @@ export default function CraftedProductPricing({ data, onChange }) {
       });
 
       setMultiCurrencyPrices(newMultiCurrencyPrices);
-      onChange({
-        ...data,
+      onChangeRef.current({
+        ...d,
         pricing: {
-          ...data.pricing,
+          ...d.pricing,
           is_multi: true,
           multi_currency_prices: newMultiCurrencyPrices,
           total_price: totalPrice
@@ -183,9 +201,9 @@ export default function CraftedProductPricing({ data, onChange }) {
     } else if (priceMode === 'price') {
       const costsByCurrency = calculateTotalFromComponents('cost');
       const pricesByCurrency = calculateTotalFromComponents('price');
-      const meanVat = calculateMeanValue(data.components, 'vat');
-      const meanProfit = calculateMeanValue(data.components, 'profit');
-      const meanDiscount = calculateMeanValue(data.components, 'discount');
+      const meanVat = calculateMeanValue(d.components, 'vat');
+      const meanProfit = calculateMeanValue(d.components, 'profit');
+      const meanDiscount = calculateMeanValue(d.components, 'discount');
       
 
       // Apply price difference if enabled
@@ -207,10 +225,10 @@ export default function CraftedProductPricing({ data, onChange }) {
       });
 
       setMultiCurrencyPrices(newMultiCurrencyPrices);
-      onChange({
-        ...data,
+      onChangeRef.current({
+        ...d,
         pricing: {
-          ...data.pricing,
+          ...d.pricing,
           is_multi: true,
           cost: costsByCurrency.total,
           multi_currency_prices: newMultiCurrencyPrices,
@@ -221,7 +239,21 @@ export default function CraftedProductPricing({ data, onChange }) {
         }
       });
     }
-  }, [data.components, data.pricing?.profit, data.pricing?.vat, data.pricing?.discount,data.pricing?.has_difference, data.pricing?.difference_value, data.pricing?.difference_type,data.pricing?.currency, priceMode]);
+  }, [
+    priceMode,
+    currencyRates,
+    data.components,
+    data.pricing?.cost,
+    data.pricing?.profit,
+    data.pricing?.vat,
+    data.pricing?.discount,
+    data.pricing?.has_difference,
+    data.pricing?.difference_value,
+    data.pricing?.difference_type,
+    data.pricing?.currency,
+    calculateTotalFromComponents,
+    calculateMeanValue,
+  ]);
 
  
  

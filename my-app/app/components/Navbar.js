@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
@@ -50,23 +51,24 @@ const Navbar = () => {
     console.log('isLoggedIn in Navbar changed:', isLoggedIn);
   }, [isLoggedIn]);
 
-  useEffect(() => { 
-    console.log("isLoggedIn in Navbar",isLoggedIn)
+  useEffect(() => {
+    console.log('isLoggedIn in Navbar', isLoggedIn);
     const fetchCategories = async () => {
       try {
-        const res = await fetch('/api/web-categories',
-        {credentials: 'include',});
+        const res = await fetch('/api/web-categories', { credentials: 'include' });
         if (!res.ok) {
           throw new Error(`Error fetching web categories: ${res.status}`);
         }
         const data = await res.json();
-        console.log("Web Categories Data:", data);
+        console.log('Web Categories Data:', data);
         setCategories(data);
       } catch (err) {
         console.error('Failed to fetch web categories:', err);
       }
     };
     fetchCategories();
+    // Web categories do not depend on auth; mount-only fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -154,7 +156,7 @@ const Navbar = () => {
       
       <SearchBar/>
       <Link href="/" id='tasarla-text' className='tasarla-link'>
-      <img src="/draw.svg" alt="Draw Icon" id='draw-icon' />
+      <Image src="/draw.svg" alt="Draw Icon" id="draw-icon" width={28} height={28} />
       <span id='tasarla-text'>Sulama Sistemi Tasarla</span>
       </Link>  
       {!isLoggedIn ? (
@@ -184,10 +186,12 @@ const Navbar = () => {
       
        <Link href="/cart" id='cart-link' /*style={{ color: '#000000', textDecoration: 'none' }}*/ >
         <div id='cart-container'>
-        <img 
-          src="/garden-cart.svg" 
-          alt="Garden Cart" 
-          id='garden-cart-icon' 
+        <Image
+          src="/garden-cart.svg"
+          alt="Garden Cart"
+          id="garden-cart-icon"
+          width={32}
+          height={32}
         />
         <span id='cart-count'>{cartCount}</span>
         
@@ -201,10 +205,12 @@ const Navbar = () => {
         onMouseEnter={()=>setOpenCategories(true)}
         onMouseLeave={()=>setOpenCategories(false)}
         >
-          <img 
-            src="/category.svg" 
-            alt="Categories icon" 
-            className="categories-icon" 
+          <Image
+            src="/category.svg"
+            alt="Categories icon"
+            className="categories-icon"
+            width={22}
+            height={22}
           />
           <span className="categories-text">Tüm Kategoriler</span>
         </button>

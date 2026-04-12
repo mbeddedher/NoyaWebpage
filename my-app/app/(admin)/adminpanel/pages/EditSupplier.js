@@ -39,7 +39,7 @@ export default function EditSupplier({ supplierId }) {
     };
 
     fetchData();
-  }, [supplierId]);
+  }, [supplierId, closeTab]);
 
   // Check for modifications
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function EditSupplier({ supplierId }) {
       const newLabel = `Edit Supplier - ${supplierData.name}${hasChanges ? ' *' : ''}`;
       updateTabLabel(`edit-supplier-${supplierId}`, newLabel);
     }
-  }, [supplierData, originalData, supplierId]);
+  }, [supplierData, originalData, supplierId, updateTabLabel]);
 
   const handleSubmit = async () => {
     try {

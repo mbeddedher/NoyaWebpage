@@ -158,17 +158,28 @@
   background-color: white;
 }
 
+.thumbnail-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: white;
+}
+
 .thumbnail {
+  position: relative;
   width: 60px;
   height: 60px;
-  object-fit: cover;
+  flex-shrink: 0;
   border-radius: 0.25rem;
+  overflow: hidden;
   cursor: pointer;
   opacity: 0.6;
   transition: opacity 0.2s;
 }
 
 .thumbnail.active,
+.thumbnail.selected,
 .thumbnail:hover {
   opacity: 1;
 }

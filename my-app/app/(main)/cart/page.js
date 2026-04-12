@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
+import OptimizedImage from '../../components/OptimizedImage';
 import '../../styles/cart.css';
 
 export default function CartPage() {
@@ -182,10 +183,13 @@ export default function CartPage() {
             <h3 className="variant-header">{group.variantName}</h3>
             {group.items.map((item) => (
               <div key={item.productId} className="cart-item">
-                <img 
-                  src={item.image || '/placeholder.jpg'} 
-                  alt={item.name} 
+                <OptimizedImage
+                  src={item.image || '/no-image.svg'}
+                  alt={item.name}
+                  width={100}
+                  height={100}
                   className="item-image"
+                  style={{ objectFit: 'cover' }}
                 />
                 <div className="item-details">
                   <h4 className="item-name">{item.name}</h4>

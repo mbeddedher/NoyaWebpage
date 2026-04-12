@@ -97,6 +97,8 @@ export default function EditProduct({ productId }) {
     } else {
       setLoading(false);
     }
+    // Intentionally tied to productId only: avoids refetch loops from formData/productData edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
   // Save form data whenever it changes
@@ -108,7 +110,7 @@ export default function EditProduct({ productId }) {
         currentSection
       });
     }
-  }, [productData, currentSection, loading, activeTabId]);
+  }, [productData, originalData, currentSection, loading, activeTabId, saveTabFormData]);
 
   const sections = {
     details: {

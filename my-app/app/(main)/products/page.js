@@ -187,7 +187,7 @@ const ProductsPageContent = () => {
     };
 
     fetchInitialData();
-  }, []);
+  }, [searchParams]);
 
   // Debounced filter effect
   useEffect(() => {

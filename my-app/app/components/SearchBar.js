@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import '../styles/SearchBar.css'
 
@@ -100,7 +101,7 @@ export default function SearchBar() {
           placeholder="Aradığınız ürünü giriniz"
         />
         <button id="search-button" onClick={handleSearch}>
-          <img src="/search.svg" alt="Search Button" />
+          <Image src="/search.svg" alt="Search Button" width={22} height={22} />
         </button>
       </div>
 

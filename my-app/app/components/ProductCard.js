@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import OptimizedImage from './OptimizedImage';
 import { trackProductEvent } from '../lib/productEvents';
 import { useUser } from '../context/UserContext';
 import '../styles/ProductCard.css';
@@ -110,15 +111,14 @@ export const ProductCard = ({ product, source }) => {
         onClick={() => source && trackProductEvent(product.product_id, 'click', { source, userId })}
       >
         <div className="product-image">
-          <img
+          <OptimizedImage
             src={displaySrc}
             alt={product.product_name}
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = noImageSrc;
-            }}
-            loading="lazy"
+            fill
+            fallback={noImageSrc}
             className="product-thumbnail"
+            sizes="(max-width: 640px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            style={{ objectFit: 'contain', objectPosition: 'center' }}
           />
           {isHovered && galleryImages.length > 1 && (
             <>

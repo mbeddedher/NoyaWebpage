@@ -141,7 +141,7 @@ export default function AddCategory() {
         categoryData
       });
     }
-  }, [categoryData, activeTabId, loading]);
+  }, [categoryData, activeTabId, loading, saveTabFormData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
