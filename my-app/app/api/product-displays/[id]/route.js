@@ -143,8 +143,6 @@ export async function GET(request, { params }) {
           ...image,
           original_url: publicImageUrl(image.original_url),
           thumb_url: image.thumb_url ? publicImageUrl(image.thumb_url) : null,
-          // For admin crop editor: treat stored thumb_url as the current cropped thumbnail.
-          cart_url: image.thumb_url ? publicImageUrl(image.thumb_url) : null,
           medium_url: image.medium_url ? publicImageUrl(image.medium_url) : null,
           large_url: image.large_url ? publicImageUrl(image.large_url) : null,
           is_primary: image.is_primary || false,
@@ -304,7 +302,19 @@ export async function PUT(request, { params }) {
       // 4. Insert new images with generated versions
       if (images && images.length > 0) {
         for (const image of images) {
-          const versions = await generateImageVersionsWithFallback(image);
+          let versions;
+          try {
+            versions = await generateImageVersionsWithFallback(image);
+          } catch (e) {
+            console.warn('Image processing failed, inserting URL-only image row:', e?.message);
+            const orig = image?.original_url || image?.url || '';
+            versions = {
+              original_url: orig,
+              thumb_url: image?.cart_url || image?.thumb_url || orig || null,
+              medium_url: image?.medium_url || null,
+              large_url: image?.large_url || null,
+            };
+          }
           // If the client already generated a cropped thumb (cart_url), don't overwrite it by regenerating.
           const preferredThumbUrl = image?.cart_url || image?.thumb_url || null;
           if (preferredThumbUrl) {

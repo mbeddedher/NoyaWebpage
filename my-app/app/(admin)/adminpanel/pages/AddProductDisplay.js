@@ -2078,9 +2078,6 @@ export default function AddProductDisplay() {
         price_array: priceArray,
         images: displayData.images?.map(img => ({
           original_url: img.original_url || img.url,
-          // If a cropped thumbnail was generated via /api/upload, keep it so backend stores it as thumb_url.
-          cart_url: img.cart_url || img.thumb_url || null,
-          thumb_url: img.thumb_url,
           alt_text: img.alt_text,
           order_index: img.order_index,
           hide: img.hide ?? false,

@@ -205,7 +205,19 @@ export async function POST(request) {
       // 3. Insert images with generated versions
       if (images && images.length > 0) {
         for (const image of images) {
-          const versions = await generateImageVersionsWithFallback(image);
+          let versions;
+          try {
+            versions = await generateImageVersionsWithFallback(image);
+          } catch (e) {
+            console.warn('Image processing failed, inserting URL-only image row:', e?.message);
+            const orig = image?.original_url || image?.url || '';
+            versions = {
+              original_url: orig,
+              thumb_url: image?.cart_url || image?.thumb_url || orig || null,
+              medium_url: image?.medium_url || null,
+              large_url: image?.large_url || null,
+            };
+          }
           // IMPORTANT: If the client provides a cropped thumb URL (from /api/upload's `cart_url`),
           // prefer it over regenerated thumb (which would be center-cropped again).
           const preferredThumbUrl = image?.cart_url || image?.thumb_url || null;
