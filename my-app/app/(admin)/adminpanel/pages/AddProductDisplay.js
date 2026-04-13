@@ -5,6 +5,123 @@ import AddContentLayout from '../layouts/AddContentLayout';
 import { useAdminTabs } from '../../../context/AdminTabsContext';
 import OptimizedImage from '../../../components/OptimizedImage';
 
+// In admin tabs, components may remount frequently; cache lookup fetches to avoid request storms.
+let __variantsLookupCache = null; // { productsList, pricesData, stocksData, packageOptionsData, currencyData }
+let __variantsLookupInflight = null;
+
+let __webCategoriesCache = null; // array from /api/web-categories (processed)
+let __webCategoriesInflight = null;
+
+async function fetchWebCategoriesCached() {
+  if (__webCategoriesCache) return __webCategoriesCache;
+  if (__webCategoriesInflight) return __webCategoriesInflight;
+
+  __webCategoriesInflight = (async () => {
+    const response = await fetch('/api/web-categories');
+    if (!response.ok) {
+      throw new Error('Failed to fetch categories');
+    }
+    const data = await response.json();
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid categories data received');
+    }
+
+    const categoryMap = data.reduce((map, cat) => {
+      map[cat.id] = cat;
+      return map;
+    }, {});
+
+    return data.map((cat) => ({
+      ...cat,
+      parentName: cat.parent_id ? categoryMap[cat.parent_id]?.name : null,
+    }));
+  })();
+
+  try {
+    __webCategoriesCache = await __webCategoriesInflight;
+    return __webCategoriesCache;
+  } finally {
+    __webCategoriesInflight = null;
+  }
+}
+
+async function fetchVariantsLookupData() {
+  if (__variantsLookupCache) return __variantsLookupCache;
+  if (__variantsLookupInflight) return __variantsLookupInflight;
+
+  __variantsLookupInflight = (async () => {
+    // 1. products
+    const productsRes = await fetch('/api/products');
+    if (!productsRes.ok) {
+      const errorData = await productsRes.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch products');
+    }
+    const productsData = await productsRes.json();
+    const productsList = productsData.products || [];
+    if (!Array.isArray(productsList)) {
+      throw new Error('Invalid products data format');
+    }
+
+    // When no products, skip the rest (keeps UI functional)
+    if (productsList.length === 0) {
+      return {
+        productsList,
+        pricesData: [],
+        stocksData: [],
+        packageOptionsData: [],
+        currencyData: [],
+      };
+    }
+
+    // 2. prices / stocks / package options / currency rates in parallel
+    const [pricesRes, stocksRes, packageOptionsRes, currencyRes] = await Promise.all([
+      fetch('/api/products/prices'),
+      fetch('/api/products/stocks'),
+      fetch('/api/package-options'),
+      fetch('/api/currency-rates'),
+    ]);
+
+    if (!pricesRes.ok) {
+      const errorData = await pricesRes.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch prices');
+    }
+    if (!stocksRes.ok) {
+      const errorData = await stocksRes.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch stocks');
+    }
+    if (!packageOptionsRes.ok) {
+      const errorData = await packageOptionsRes.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch package options');
+    }
+    if (!currencyRes.ok) {
+      const errorData = await currencyRes.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch currencies');
+    }
+
+    const [pricesData, stocksData, packageOptionsData, currencyData] = await Promise.all([
+      pricesRes.json(),
+      stocksRes.json(),
+      packageOptionsRes.json(),
+      currencyRes.json(),
+    ]);
+
+    return {
+      productsList,
+      pricesData,
+      stocksData,
+      packageOptionsData,
+      currencyData,
+    };
+  })();
+
+  try {
+    __variantsLookupCache = await __variantsLookupInflight;
+    return __variantsLookupCache;
+  } finally {
+    __variantsLookupInflight = null;
+  }
+}
+
 // Basic Details Component
 export function BasicDetails({ data, onChange }) {
   const [webCategories, setWebCategories] = useState([]);
@@ -31,29 +148,8 @@ export function BasicDetails({ data, onChange }) {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('/api/web-categories');
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories');
-        }
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          // Create a map of parent categories
-          const categoryMap = data.reduce((map, cat) => {
-            map[cat.id] = cat;
-            return map;
-          }, {});
-
-          // Add parent information to each category
-          const categoriesWithParents = data.map(cat => ({
-            ...cat,
-            parentName: cat.parent_id ? categoryMap[cat.parent_id]?.name : null
-          }));
-
-          setWebCategories(categoriesWithParents);
-        } else {
-          setWebCategories([]);
-          setError('Invalid categories data received');
-        }
+        const categoriesWithParents = await fetchWebCategoriesCached();
+        setWebCategories(categoriesWithParents);
       } catch (error) {
         console.error('Error fetching web categories:', error);
         setWebCategories([]);
@@ -358,117 +454,71 @@ export function ProductVariants({ data, onChange }) {
         // Reset error state
         setError(null);
 
-        // 1. First fetch products
-        const productsRes = await fetch('/api/products');
-        if (!productsRes.ok) {
-          const errorData = await productsRes.json();
-          throw new Error(errorData.error || 'Failed to fetch products');
-        }
-        const productsData = await productsRes.json();
+        const { productsList, pricesData, stocksData, packageOptionsData, currencyData } =
+          await fetchVariantsLookupData();
 
-        // Extract products array from response
-        const productsList = productsData.products || [];
-        if (!Array.isArray(productsList)) {
-          throw new Error('Invalid products data format');
-        }
         setProducts(productsList);
 
-        // 2. Only fetch prices and stocks for products that exist
-        const productIds = productsList.map(p => p.id);
-        if (productIds.length > 0) {
-          // Fetch prices
-          const pricesRes = await fetch('/api/products/prices');
-          if (!pricesRes.ok) {
-            const errorData = await pricesRes.json();
-            throw new Error(errorData.error || 'Failed to fetch prices');
-          }
-          const pricesData = await pricesRes.json();
+        const productIds = (productsList || []).map((p) => p.id);
 
-          //GeT currency rates
-          const currencyRes = await fetch('/api/currency-rates');
-          if (!currencyRes.ok) {
-            const errorData = await currencyRes.json();
-            throw new Error(errorData.error || 'Failed to fetch currencies');
-          }
-          const currencyData = await currencyRes.json();
-          setCurrencies(currencyData);
-          onChangeRef.current({ ...dataRef.current, currencies: currencyData });
-          
-          // Map prices
-          const pricesMap = {};
-          if (Array.isArray(pricesData)) {
-            pricesData.forEach(price => {
-              if (price && price.product_id && productIds.includes(price.product_id)) {
+        setCurrencies(Array.isArray(currencyData) ? currencyData : []);
+        onChangeRef.current({ ...dataRef.current, currencies: currencyData });
 
-                pricesMap[price.product_id] = {
-                  price: price.price || 0,
-                  discount: price.discount || 0,
-                  currency: price.currency || 'USD',
-                  is_multi: price.is_multi,
-                  multi_currency_prices: price.multi_currency_prices,
-
-                };
-                onChangeRef.current({ ...dataRef.current, prices: pricesMap });
-              }
-            });
-          }
-          setProductPrices(pricesMap);
-
-          // Fetch stocks
-          const stocksRes = await fetch('/api/products/stocks');
-          if (!stocksRes.ok) {
-            const errorData = await stocksRes.json();
-            throw new Error(errorData.error || 'Failed to fetch stocks');
-          }
-          const stocksData = await stocksRes.json();
-          
-          // Map stocks
-          const stocksMap = {};
-          if (Array.isArray(stocksData)) {
-            stocksData.forEach(stock => {
-              if (stock && stock.product_id && productIds.includes(stock.product_id)) {
-                stocksMap[stock.product_id] = {
-                  quantity: stock.quantity || 0,
-                  unit: stock.unit || 'pcs',
-                  status: stock.stock_status || 'in_stock'
-                };
-              }
-            });
-          }
-          setProductStocks(stocksMap);
-
-          // Fetch package options
-          const packageOptionsRes = await fetch('/api/package-options');
-          if (!packageOptionsRes.ok) {
-            const errorData = await packageOptionsRes.json();
-            throw new Error(errorData.error || 'Failed to fetch package options');
-          }
-          const packageOptionsData = await packageOptionsRes.json();
-
-          // Map package options
-          const optionsMap = {};
-          if (Array.isArray(packageOptionsData)) {
-            packageOptionsData.forEach(option => {
-              if (option && option.product_id && productIds.includes(option.product_id)) {
-                if (!optionsMap[option.product_id]) {
-                  optionsMap[option.product_id] = [];
-                }
-                optionsMap[option.product_id].push({
-                  id: option.id,
-                  name: option.name,
-                  count: option.count,
-                  discount: option.discount,
-                  status: option.status,
-                  stock_status: option.stock_status,
-                  order_index: option.order_index
-                });
-                // Sort package options by order_index
-                optionsMap[option.product_id].sort((a, b) => a.order_index - b.order_index);
-              }
-            });
-          }
-          setPackageOptions(optionsMap);
+        // Map prices
+        const pricesMap = {};
+        if (Array.isArray(pricesData)) {
+          pricesData.forEach((price) => {
+            if (price && price.product_id && productIds.includes(price.product_id)) {
+              pricesMap[price.product_id] = {
+                price: price.price || 0,
+                discount: price.discount || 0,
+                currency: price.currency || 'USD',
+                is_multi: price.is_multi,
+                multi_currency_prices: price.multi_currency_prices,
+              };
+            }
+          });
         }
+        setProductPrices(pricesMap);
+        onChangeRef.current({ ...dataRef.current, prices: pricesMap });
+
+        // Map stocks
+        const stocksMap = {};
+        if (Array.isArray(stocksData)) {
+          stocksData.forEach((stock) => {
+            if (stock && stock.product_id && productIds.includes(stock.product_id)) {
+              stocksMap[stock.product_id] = {
+                quantity: stock.quantity || 0,
+                unit: stock.unit || 'pcs',
+                status: stock.stock_status || 'in_stock',
+              };
+            }
+          });
+        }
+        setProductStocks(stocksMap);
+
+        // Map package options
+        const optionsMap = {};
+        if (Array.isArray(packageOptionsData)) {
+          packageOptionsData.forEach((option) => {
+            if (option && option.product_id && productIds.includes(option.product_id)) {
+              if (!optionsMap[option.product_id]) {
+                optionsMap[option.product_id] = [];
+              }
+              optionsMap[option.product_id].push({
+                id: option.id,
+                name: option.name,
+                count: option.count,
+                discount: option.discount,
+                status: option.status,
+                stock_status: option.stock_status,
+                order_index: option.order_index,
+              });
+              optionsMap[option.product_id].sort((a, b) => a.order_index - b.order_index);
+            }
+          });
+        }
+        setPackageOptions(optionsMap);
       } catch (error) {
         console.error('Error fetching data:', error);
         setError(error.message || 'Failed to fetch data');
