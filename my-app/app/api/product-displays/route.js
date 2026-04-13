@@ -119,8 +119,17 @@ export async function POST(request) {
     // Convert keywords to array if it's a string
     const keywordsArray = keywords ? keywords.split(',').map(k => k.trim()) : [];
 
-    // Extract unique sizes from variants and create size_array
-    const sizeArray = variants ? [...new Set(variants.map(v => v.size.trim()))] : [];
+    // Unique sizes from variants (source of truth for card filters + display)
+    const sizeArrayFromVariants = Array.isArray(variants)
+      ? [...new Set(variants.map((v) => (v?.size || '').trim()).filter(Boolean))]
+      : [];
+    const resolvedSizeArray =
+      sizeArrayFromVariants.length > 0
+        ? sizeArrayFromVariants
+        : Array.isArray(size_array) && size_array.length
+          ? size_array
+          : [];
+    const resolvedHasVariants = resolvedSizeArray.length > 1;
 
 
     //Calculate min and max price from price_info by calculating currency and multi_currency_prices
@@ -152,9 +161,9 @@ export async function POST(request) {
           min_price,
           max_price,
           price_array,
-          size_array,
+          resolvedSizeArray,
           default_size,
-          has_variants
+          resolvedHasVariants
         ]
       );
 

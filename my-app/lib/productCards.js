@@ -160,18 +160,26 @@ export async function queryProductCards(filters) {
           }
         }
         if (!default_size && size_array?.length) default_size = size_array[0];
-        if (has_variants == null && size_array?.length > 1) has_variants = true;
+        // DB flag can be wrong; drive UI from actual size list
+        const nSizes = size_array?.length ?? 0;
+        if (nSizes > 1) has_variants = true;
+        else if (nSizes === 1) has_variants = false;
       }
 
       const { variants: _, ...rest } = row;
+      const outSizes = size_array || [];
+      let outHasVariants = has_variants ?? false;
+      if (outSizes.length > 1) outHasVariants = true;
+      else if (outSizes.length === 1) outHasVariants = false;
+
       return {
         ...rest,
         min_price,
         max_price,
         price_array: price_array || (min_price != null ? [min_price] : null),
-        size_array: size_array || [],
+        size_array: outSizes,
         default_size,
-        has_variants: has_variants ?? false,
+        has_variants: outHasVariants,
         primary_image_url: row.primary_image_url,
       };
     });

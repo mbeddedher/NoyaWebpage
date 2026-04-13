@@ -201,8 +201,16 @@ export async function PUT(request, { params }) {
       ? keywords 
       : (typeof keywords === 'string' ? keywords.split(',').map(k => k.trim()) : []);
 
-    // Extract unique sizes from variants and create size_array
-    const sizeArray = variants ? [...new Set(variants.map(v => v.size.trim()))] : [];
+    const sizeArrayFromVariants = Array.isArray(variants)
+      ? [...new Set(variants.map((v) => (v?.size || '').trim()).filter(Boolean))]
+      : [];
+    const resolvedSizeArray =
+      sizeArrayFromVariants.length > 0
+        ? sizeArrayFromVariants
+        : Array.isArray(size_array) && size_array.length
+          ? size_array
+          : [];
+    const resolvedHasVariants = resolvedSizeArray.length > 1;
 
     // Start transaction
     await client.query('BEGIN');
@@ -223,11 +231,11 @@ export async function PUT(request, { params }) {
           status || 'active',
           Array.isArray(keywords) ? keywords : keywords?.split(',').map(k => k.trim()),
           brand || '', 
-          size_array,
+          resolvedSizeArray,
           min_price,
           max_price,
           price_array,
-          has_variants,
+          resolvedHasVariants,
           default_size,
           id
         ]

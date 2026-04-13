@@ -189,9 +189,9 @@ export const ProductCard = ({ product, source }) => {
           </div>
         </div>
 
-        {product.has_variants && (
+        {(product.size_array?.length ?? 0) > 0 && (
           <div className="size-selector">
-            {product.size_array?.map((size, index) => (
+            {product.size_array.map((size, index) => (
               <button
                 key={size}
                 className={`size-button ${selectedSize === size ? 'selected' : ''}`}
