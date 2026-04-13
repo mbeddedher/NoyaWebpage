@@ -1114,7 +1114,8 @@ export function ProductImages({ data, onChange }) {
             alt_text: '',
             in_thumb: true,
             hide: false,
-            order_index: images.length + newImages.length,
+            // 1-based ordering (validation requires orders start from 1)
+            order_index: images.length + newImages.length + 1,
             file_size: uploadResponse.file_size ?? fileSize,
             resolution: uploadResponse.resolution ?? resolution,
             format: uploadResponse.format || format,
@@ -1227,7 +1228,7 @@ export function ProductImages({ data, onChange }) {
 
     // Update the order_index for all images
     const updatedImages = [...images];
-    const oldOrder = index + 1;
+    const oldOrder = Number(updatedImages[index]?.order_index) || index + 1;
     
     updatedImages.forEach((img, i) => {
       if (oldOrder < orderNum) {
