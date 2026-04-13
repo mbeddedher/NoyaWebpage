@@ -891,6 +891,10 @@ export function ProductImages({ data, onChange }) {
   const [cropFile, setCropFile] = useState(null);
   const [cropRect, setCropRect] = useState({ x: 0, y: 0, w: 0, h: 0 }); // in displayed image px
   const [cropDragging, setCropDragging] = useState(null); // { mode, startX, startY, startRect }
+  /** 'queue' = new file upload sequence; 'existing' = crop/regenerate thumbnail for image at index */
+  const [cropSource, setCropSource] = useState('queue'); // 'queue' | 'existing'
+  const [cropExistingIndex, setCropExistingIndex] = useState(null);
+  const [cropLoading, setCropLoading] = useState(false);
   const cropImgRef = useRef(null);
   const cropWrapRef = useRef(null);
   const cropObjectUrlRef = useRef('');
@@ -928,6 +932,8 @@ export function ProductImages({ data, onChange }) {
     // Open crop UI (process sequentially)
     setCropQueue(files);
     setCropIndex(0);
+    setCropSource('queue');
+    setCropExistingIndex(null);
     setUploading(false);
     setUploadProgress({});
     openCropForFile(files[0]);
@@ -945,6 +951,42 @@ export function ProductImages({ data, onChange }) {
     const url = URL.createObjectURL(file);
     cropObjectUrlRef.current = url;
     setCropSrc(url);
+  };
+
+  /** Open editor for an already-uploaded image (fetch pixels, then same crop + re-upload flow). */
+  const openCropForExistingImage = async (index, imageUrl) => {
+    if (!imageUrl || imageUrl.startsWith('blob:')) {
+      alert('Cannot open crop editor for this image URL.');
+      return;
+    }
+    setCropSource('existing');
+    setCropExistingIndex(index);
+    setCropQueue([]);
+    setCropIndex(0);
+    setCropLoading(true);
+    setCropOpen(true);
+    try {
+      const res = await fetch(imageUrl, { mode: 'cors' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const baseName =
+        (images[index]?.original_url || images[index]?.url || 'image')
+          .split('/')
+          .pop()
+          ?.split('?')[0] || `image-${index}.webp`;
+      const file = new File([blob], baseName, { type: blob.type || 'image/webp' });
+      openCropForFile(file);
+    } catch (err) {
+      console.error('Failed to load image for cropping:', err);
+      alert(
+        'Could not load this image for cropping. If it is hosted on another domain, CORS may block the request.'
+      );
+      setCropOpen(false);
+      setCropSource('queue');
+      setCropExistingIndex(null);
+    } finally {
+      setCropLoading(false);
+    }
   };
 
   const initCropRectToImage = () => {
@@ -1146,6 +1188,45 @@ export function ProductImages({ data, onChange }) {
     }
   };
 
+  /** Re-upload one file with crop and replace the row at `index` (same order / flags except URLs + thumb). */
+  const uploadCroppedFileReplaceIndex = async (index, file, crop) => {
+    setUploading(true);
+    try {
+      const resolution = await getImageResolution(file);
+      const fileSize = Math.round(file.size / 1024);
+      const format = file.type.split('/')[1]?.toUpperCase() || 'WEBP';
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (crop) formData.append('crop', JSON.stringify(crop));
+
+      const response = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error('Failed to upload image');
+
+      const uploadResponse = await response.json();
+      const prev = images[index] || {};
+
+      const updatedImages = [...images];
+      updatedImages[index] = {
+        ...prev,
+        original_url: uploadResponse.url,
+        cart_url: uploadResponse.cart_url,
+        file_size: uploadResponse.file_size ?? fileSize,
+        resolution: uploadResponse.resolution ?? resolution,
+        format: uploadResponse.format || format,
+        cart_dimensions: uploadResponse.cart_dimensions ?? { width: THUMB_W, height: THUMB_H },
+        in_thumb: true,
+      };
+
+      onChange({ ...data, images: updatedImages });
+    } catch (error) {
+      console.error('Replace image upload failed:', error);
+      alert('Failed to update image. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const confirmCropAndUpload = async () => {
     const img = cropImgRef.current;
     if (!img || !cropFile) return;
@@ -1166,6 +1247,22 @@ export function ProductImages({ data, onChange }) {
       height: cropRect.h * scaleY,
     };
 
+    if (cropSource === 'existing' && cropExistingIndex != null) {
+      await uploadCroppedFileReplaceIndex(cropExistingIndex, cropFile, crop);
+      setCropOpen(false);
+      setCropQueue([]);
+      setCropIndex(0);
+      setCropFile(null);
+      setCropSrc('');
+      setCropSource('queue');
+      setCropExistingIndex(null);
+      if (cropObjectUrlRef.current) {
+        try { URL.revokeObjectURL(cropObjectUrlRef.current); } catch {}
+        cropObjectUrlRef.current = '';
+      }
+      return;
+    }
+
     await uploadCroppedFile({ file: cropFile, crop });
 
     // Move to next file or close modal
@@ -1180,6 +1277,8 @@ export function ProductImages({ data, onChange }) {
       setCropIndex(0);
       setCropFile(null);
       setCropSrc('');
+      setCropSource('queue');
+      setCropExistingIndex(null);
       if (cropObjectUrlRef.current) {
         try { URL.revokeObjectURL(cropObjectUrlRef.current); } catch {}
         cropObjectUrlRef.current = '';
@@ -1193,6 +1292,9 @@ export function ProductImages({ data, onChange }) {
     setCropIndex(0);
     setCropFile(null);
     setCropSrc('');
+    setCropSource('queue');
+    setCropExistingIndex(null);
+    setCropLoading(false);
     if (cropObjectUrlRef.current) {
       try { URL.revokeObjectURL(cropObjectUrlRef.current); } catch {}
       cropObjectUrlRef.current = '';
@@ -1303,11 +1405,29 @@ export function ProductImages({ data, onChange }) {
                     <input
                       type="checkbox"
                       checked={image.in_thumb ?? true}
-                      onChange={(e) => updateImage(index, 'in_thumb', e.target.checked)}
+                      onChange={(e) => {
+                        if (image.hide) return;
+                        const next = e.target.checked;
+                        if (!next) {
+                          updateImage(index, 'in_thumb', false);
+                          return;
+                        }
+                        // Thumbnails are generated from the crop: open editor before enabling.
+                        openCropForExistingImage(index, finalUrl);
+                      }}
                       disabled={image.hide ?? false}
                     />
                     In Thumbnail
                   </label>
+                  {(image.in_thumb ?? true) && !(image.hide ?? false) && (
+                    <button
+                      type="button"
+                      className="thumb-adjust-btn"
+                      onClick={() => openCropForExistingImage(index, finalUrl)}
+                    >
+                      Adjust thumbnail crop
+                    </button>
+                  )}
                   <label className="primary-checkbox">
                     <input
                       type="checkbox"
@@ -1373,9 +1493,12 @@ export function ProductImages({ data, onChange }) {
           <div className="crop-modal__panel">
             <div className="crop-modal__header">
               <div>
-                <div className="crop-modal__title">Create Thumbnail Crop</div>
+                <div className="crop-modal__title">
+                  {cropSource === 'existing' ? 'Set thumbnail crop' : 'Create Thumbnail Crop'}
+                </div>
                 <div className="crop-modal__subtitle">
-                  Drag + resize the frame. Aspect ratio is fixed ({THUMB_W}×{THUMB_H}).
+                  Drag + resize the frame. Aspect ratio is fixed ({THUMB_W}×{THUMB_H}). The image is scaled to
+                  fit this window; crop still maps to the full-resolution file.
                 </div>
               </div>
               <button type="button" className="crop-modal__close" onClick={cancelCrop}>
@@ -1385,9 +1508,13 @@ export function ProductImages({ data, onChange }) {
 
             <div className="crop-modal__body">
               <div className="crop-stage" ref={cropWrapRef}>
-                {cropSrc && (
+                {cropLoading && (
+                  <div className="crop-loading">Loading image…</div>
+                )}
+                {cropSrc && !cropLoading && (
                   <>
                     <div className="crop-media">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- needs natural dimensions + object-fit in modal */}
                       <img
                         ref={cropImgRef}
                         src={cropSrc}
@@ -1424,16 +1551,33 @@ export function ProductImages({ data, onChange }) {
               <div className="crop-modal__file">
                 {cropFile?.name ? (
                   <span>
-                    File {cropIndex + 1}/{cropQueue.length}: <strong>{cropFile.name}</strong>
+                    {cropSource === 'queue' && cropQueue.length > 0 ? (
+                      <>
+                        File {cropIndex + 1}/{cropQueue.length}: <strong>{cropFile.name}</strong>
+                      </>
+                    ) : (
+                      <strong>{cropFile.name}</strong>
+                    )}
                   </span>
+                ) : cropLoading ? (
+                  <span>Preparing…</span>
                 ) : null}
               </div>
               <div className="crop-modal__actions">
                 <button type="button" className="crop-btn ghost" onClick={cancelCrop} disabled={uploading}>
                   Cancel
                 </button>
-                <button type="button" className="crop-btn primary" onClick={confirmCropAndUpload} disabled={uploading}>
-                  {uploading ? 'Uploading...' : 'Confirm & Upload'}
+                <button
+                  type="button"
+                  className="crop-btn primary"
+                  onClick={confirmCropAndUpload}
+                  disabled={uploading || cropLoading || !cropSrc}
+                >
+                  {uploading
+                    ? 'Uploading…'
+                    : cropSource === 'existing'
+                      ? 'Confirm & update thumbnail'
+                      : 'Confirm & Upload'}
                 </button>
               </div>
             </div>
@@ -1585,7 +1729,8 @@ export function ProductImages({ data, onChange }) {
           border: 1px solid rgba(255, 255, 255, 0.08);
           overflow: hidden;
           display: grid;
-          grid-template-rows: auto 1fr auto;
+          grid-template-rows: auto minmax(0, 1fr) auto;
+          min-height: 0;
         }
         .crop-modal__header {
           padding: 14px 16px;
@@ -1619,32 +1764,65 @@ export function ProductImages({ data, onChange }) {
         }
         .crop-modal__body {
           padding: 14px;
+          min-height: 0;
           overflow: hidden;
+          display: flex;
+          flex-direction: column;
         }
         .crop-stage {
           position: relative;
+          flex: 1 1 auto;
+          min-height: 0;
           width: 100%;
-          height: 100%;
-          display: grid;
-          place-items: center;
-          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: auto;
           border-radius: 10px;
           background: radial-gradient(1200px 600px at 30% 10%, rgba(74,144,226,0.25), transparent 60%),
             #0a0c14;
           border: 1px solid rgba(255,255,255,0.08);
+        }
+        .crop-loading {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 15px;
+          pointer-events: none;
         }
         .crop-media {
           position: relative;
           display: inline-block;
           line-height: 0;
           user-select: none;
+          max-width: 100%;
+          max-height: 100%;
         }
         .crop-image {
           max-width: 100%;
           max-height: 100%;
+          width: auto;
+          height: auto;
+          object-fit: contain;
+          vertical-align: top;
           user-select: none;
           -webkit-user-drag: none;
           display: block;
+        }
+        .thumb-adjust-btn {
+          padding: 4px 10px;
+          font-size: 0.85em;
+          border-radius: 6px;
+          border: 1px solid #4a90e2;
+          background: #fff;
+          color: #357abd;
+          cursor: pointer;
+        }
+        .thumb-adjust-btn:hover {
+          background: #eef6ff;
         }
         .crop-dim {
           position: absolute;
