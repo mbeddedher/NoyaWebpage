@@ -469,7 +469,6 @@ export function ProductVariants({ data, onChange }) {
       const productIds = (productsList || []).map((p) => p.id);
 
       setCurrencies(Array.isArray(currencyData) ? currencyData : []);
-      onChangeRef.current({ ...dataRef.current, currencies: currencyData });
 
       // Map prices
       const pricesMap = {};
@@ -487,7 +486,6 @@ export function ProductVariants({ data, onChange }) {
         });
       }
       setProductPrices(pricesMap);
-      onChangeRef.current({ ...dataRef.current, prices: pricesMap });
 
       // Map stocks
       const stocksMap = {};
@@ -1405,8 +1403,10 @@ export default function AddProductDisplay() {
   // Save form data whenever it changes
   useEffect(() => {
     if (activeTabId && !loading) {
+      // Avoid persisting large derived lookup maps into localStorage
+      const { prices, currencies, ...displayDataToPersist } = displayData || {};
       saveTabFormData(activeTabId, {
-        displayData,
+        displayData: displayDataToPersist,
         currentSection
       });
     }
