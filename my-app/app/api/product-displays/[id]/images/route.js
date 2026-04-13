@@ -1,4 +1,5 @@
 import { connectToDatabase } from '~/lib/db';
+import { publicImageUrl } from '~/lib/imageUrls';
 
 /**
  * GET /api/product-displays/[id]/images
@@ -23,8 +24,8 @@ export async function GET(request, { params }) {
     );
 
     const images = (result.rows || []).map((row) => ({
-      thumb_url: row.thumb_url ? `/images/${row.thumb_url.replace(/^\/?(images\/)+/, '')}` : null,
-      original_url: row.original_url ? `/images/${row.original_url.replace(/^\/?(images\/)+/, '')}` : null,
+      thumb_url: row.thumb_url ? publicImageUrl(row.thumb_url) : null,
+      original_url: row.original_url ? publicImageUrl(row.original_url) : null,
       is_primary: row.is_primary || false,
     }));
 

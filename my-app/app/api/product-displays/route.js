@@ -196,13 +196,7 @@ export async function POST(request) {
       // 3. Insert images with generated versions
       if (images && images.length > 0) {
         for (const image of images) {
-          let rawUrl = (image.original_url || image.url || '');
-          rawUrl = rawUrl.replace(/^\/?(public\/)?(images\/)+/, '');
-          rawUrl = rawUrl.replace(/^\/?(thumbnails\/)+/, '');
-          rawUrl = rawUrl.replace(/thumbnails/g, '');
-          rawUrl = rawUrl.replace(/^\/+/, '');
-
-          const versions = await generateImageVersions(rawUrl);
+          const versions = await generateImageVersions(image.original_url || image.url || '');
 
           const validDisplayTypes = ['gallery', 'thumbnail', 'zoomed'];
           const displayType = validDisplayTypes.includes(image.display_type) 

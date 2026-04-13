@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '~/lib/db';
 import { generateImageVersions, deleteImageVersions } from '../../../../lib/imageProcessor';
+import { publicImageUrl } from '~/lib/imageUrls';
 
 // GET a single product display
 export async function GET(request, { params }) {
@@ -137,10 +138,10 @@ export async function GET(request, { params }) {
         price_array: product.price_array,
         images: (product.images || []).map(image => ({
           ...image,
-          original_url: `/images/${image.original_url}`,
-          thumb_url: image.thumb_url ? `/images/${image.thumb_url}` : null,
-          medium_url: image.medium_url ? `/images/${image.medium_url}` : null,
-          large_url: image.large_url ? `/images/${image.large_url}` : null,
+          original_url: publicImageUrl(image.original_url),
+          thumb_url: image.thumb_url ? publicImageUrl(image.thumb_url) : null,
+          medium_url: image.medium_url ? publicImageUrl(image.medium_url) : null,
+          large_url: image.large_url ? publicImageUrl(image.large_url) : null,
           is_primary: image.is_primary || false,
           in_thumb: image.in_thumb ?? true,
           hide: image.hide ?? false,
@@ -268,24 +269,18 @@ export async function PUT(request, { params }) {
 
       // 3. Delete old images and their generated versions
       const oldImages = await client.query(
-        'SELECT original_url FROM images WHERE display_id = $1',
+        'SELECT original_url, thumb_url, medium_url, large_url FROM images WHERE display_id = $1',
         [id]
       );
       for (const row of oldImages.rows) {
-        await deleteImageVersions(row.original_url);
+        await deleteImageVersions(row);
       }
       await client.query('DELETE FROM images WHERE display_id = $1', [id]);
 
       // 4. Insert new images with generated versions
       if (images && images.length > 0) {
         for (const image of images) {
-          let rawUrl = (image.original_url || image.url || '');
-          rawUrl = rawUrl.replace(/^\/?(public\/)?(images\/)+/, '');
-          rawUrl = rawUrl.replace(/^\/?(thumbnails\/)+/, '');
-          rawUrl = rawUrl.replace(/thumbnails/g, '');
-          rawUrl = rawUrl.replace(/^\/+/, '');
-
-          const versions = await generateImageVersions(rawUrl);
+          const versions = await generateImageVersions(image.original_url || image.url || '');
 
           const validDisplayTypes = ['gallery', 'thumbnail', 'zoomed'];
           const displayType = validDisplayTypes.includes(image.display_type) 
@@ -410,11 +405,11 @@ export async function DELETE(request, { params }) {
 
       // Delete generated image files before removing DB rows
       const imageRows = await client.query(
-        'SELECT original_url FROM images WHERE display_id = $1',
+        'SELECT original_url, thumb_url, medium_url, large_url FROM images WHERE display_id = $1',
         [id]
       );
       for (const row of imageRows.rows) {
-        await deleteImageVersions(row.original_url);
+        await deleteImageVersions(row);
       }
 
       await client.query(

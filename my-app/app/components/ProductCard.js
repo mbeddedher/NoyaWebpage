@@ -6,12 +6,13 @@ import OptimizedImage from './OptimizedImage';
 import { trackProductEvent } from '../lib/productEvents';
 import { useUser } from '../context/UserContext';
 import '../styles/ProductCard.css';
+import { publicImageUrl } from '~/lib/imageUrls';
 
 const noImageSrc = '/no-image.svg';
 
 function toImageSrc(url) {
   if (!url) return noImageSrc;
-  return url.startsWith('/') ? url : '/images/' + url;
+  return publicImageUrl(url) || noImageSrc;
 }
 
 export const ProductCard = ({ product, source }) => {

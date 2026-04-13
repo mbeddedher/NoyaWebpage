@@ -1001,7 +1001,12 @@ export function ProductImages({ data, onChange }) {
           // Handle image URL - ensure it's a valid path from the public directory
           const rawUrl = image.original_url || image.url || '';
           const imageUrl = rawUrl.replace(/^blob:.*$/, '');
-          const finalUrl = imageUrl.startsWith('/') ? imageUrl : `/images/${imageUrl}`;
+          const finalUrl =
+            /^https?:\/\//i.test(imageUrl)
+              ? imageUrl
+              : imageUrl.startsWith('/')
+                ? imageUrl
+                : `/images/${imageUrl}`;
           
           if (imageUrl.startsWith('blob:')) {
             return null;

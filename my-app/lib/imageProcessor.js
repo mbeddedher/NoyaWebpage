@@ -1,15 +1,14 @@
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
+import { put, del } from '@vercel/blob';
+import { normalizeStoredImageRef, isBlobStorageEnabled } from './imageUrls.js';
 
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const IMAGES_DIR = path.join(PUBLIC_DIR, 'images');
 
-/* Thumb ratio 28:42 (width:height); crop to this ratio as large as possible, then resize */
-const THUMB_RATIO_W = 28;
-const THUMB_RATIO_H = 42;
 const THUMB_WIDTH = 280;
-const THUMB_HEIGHT = 420; // THUMB_WIDTH * (THUMB_RATIO_H / THUMB_RATIO_W)
+const THUMB_HEIGHT = 420;
 
 const SIZE_CONFIGS = {
   thumb:  { width: THUMB_WIDTH, height: THUMB_HEIGHT, quality: 70, fit: 'cover' },
@@ -33,16 +32,86 @@ async function ensureDir(dirPath) {
   }
 }
 
-/**
- * Generate thumb, medium, and large WebP versions from an original on disk.
- * @param {string} originalFilename – bare filename in DB (e.g. "id.webp" or legacy "id.jpg")
- * @returns {{ thumb_url, medium_url, large_url, original_url }}
- */
-export async function generateImageVersions(originalFilename) {
-  const cleanName = originalFilename
-    .replace(/^\/?(public\/)?(images\/)+/, '')
-    .replace(/^\/+/, '');
+async function fetchImageBuffer(url) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch image (${res.status}): ${url}`);
+  }
+  return Buffer.from(await res.arrayBuffer());
+}
 
+function stemFromRemoteUrl(sourceUrl) {
+  const pathname = new URL(sourceUrl).pathname;
+  const baseName = path.basename(pathname) || `image-${Date.now()}.webp`;
+  return path.parse(baseName).name;
+}
+
+/**
+ * Build resized WebP buffer from source buffer.
+ */
+async function resizeToWebpBuffer(buf, config) {
+  let pipeline = sharp(buf);
+  let resizeOptions;
+  if (config.fit === 'cover' && config.width && config.height) {
+    resizeOptions = { width: config.width, height: config.height, fit: 'cover', position: 'center' };
+  } else if (config.fit === 'inside' && config.height) {
+    resizeOptions = { width: config.width, height: config.height, fit: 'inside', withoutEnlargement: true };
+  } else {
+    resizeOptions = { width: config.width, withoutEnlargement: true };
+  }
+  return pipeline.resize(resizeOptions).webp({ quality: config.quality, effort: 4 }).toBuffer();
+}
+
+/**
+ * From a public blob URL (original), create thumb/medium/large on Vercel Blob.
+ */
+async function generateFromRemoteBlob(sourceUrl) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    throw new Error(
+      'BLOB_READ_WRITE_TOKEN is missing. Add it in Vercel project env to store and process images.'
+    );
+  }
+
+  const buf = await fetchImageBuffer(sourceUrl);
+  const stem = stemFromRemoteUrl(sourceUrl);
+  const outBase = `${stem}.webp`;
+  const results = { original_url: sourceUrl };
+
+  for (const [sizeName, config] of Object.entries(SIZE_CONFIGS)) {
+    const pathname = `images/${sizeName}/${outBase}`;
+    try {
+      const outBuf = await resizeToWebpBuffer(buf, config);
+      const blob = await put(pathname, outBuf, {
+        access: 'public',
+        token,
+        addRandomSuffix: false,
+      });
+      results[`${sizeName}_url`] = blob.url;
+    } catch (err) {
+      console.error(`Failed to generate blob ${sizeName} for ${stem}:`, err.message);
+      throw err;
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Generate thumb, medium, and large WebP versions from a local file or remote blob URL.
+ * @returns {{ thumb_url, medium_url, large_url, original_url }} — DB stores relative paths locally, full URLs on Blob.
+ */
+export async function generateImageVersions(originalRef) {
+  const ref = normalizeStoredImageRef(originalRef);
+  if (!ref) {
+    throw new Error('Missing image reference');
+  }
+
+  if (/^https?:\/\//i.test(ref)) {
+    return generateFromRemoteBlob(ref);
+  }
+
+  const cleanName = ref;
   const sourcePath = path.join(IMAGES_DIR, cleanName);
   const outBase = derivativeWebpFilename(cleanName);
 
@@ -91,13 +160,38 @@ export async function generateImageVersions(originalFilename) {
 }
 
 /**
- * Delete all generated versions for an image.
- * @param {string} originalFilename
+ * Remove stored image assets (Vercel Blob and/or local derivatives).
+ * @param {string|{ original_url?, thumb_url?, medium_url?, large_url? }} rowOrOriginal
  */
-export async function deleteImageVersions(originalFilename) {
-  const cleanName = originalFilename
+export async function deleteImageVersions(rowOrOriginal) {
+  const row =
+    typeof rowOrOriginal === 'string'
+      ? { original_url: rowOrOriginal }
+      : rowOrOriginal || {};
+
+  const candidates = [row.original_url, row.thumb_url, row.medium_url, row.large_url].filter(Boolean);
+  const blobUrls = [...new Set(candidates.filter((u) => /^https?:\/\//i.test(String(u).trim())))];
+
+  if (blobUrls.length > 0 && isBlobStorageEnabled()) {
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    for (const u of blobUrls) {
+      try {
+        await del(u, { token });
+      } catch (e) {
+        console.warn('Blob delete failed:', u, e.message);
+      }
+    }
+  }
+
+  const orig = String(row.original_url || '').trim();
+  if (/^https?:\/\//i.test(orig)) {
+    return;
+  }
+
+  const cleanName = orig
     .replace(/^\/?(public\/)?(images\/)+/, '')
     .replace(/^\/+/, '');
+  if (!cleanName) return;
 
   const webpName = derivativeWebpFilename(cleanName);
   const names = webpName === cleanName ? [cleanName] : [cleanName, webpName];
@@ -110,5 +204,11 @@ export async function deleteImageVersions(originalFilename) {
         // file may not exist
       }
     }
+  }
+
+  try {
+    await fs.unlink(path.join(IMAGES_DIR, cleanName));
+  } catch {
+    // original may not exist or path differs
   }
 }
