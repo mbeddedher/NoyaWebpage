@@ -143,6 +143,8 @@ export async function GET(request, { params }) {
           ...image,
           original_url: publicImageUrl(image.original_url),
           thumb_url: image.thumb_url ? publicImageUrl(image.thumb_url) : null,
+          // For admin crop editor: treat stored thumb_url as the current cropped thumbnail.
+          cart_url: image.thumb_url ? publicImageUrl(image.thumb_url) : null,
           medium_url: image.medium_url ? publicImageUrl(image.medium_url) : null,
           large_url: image.large_url ? publicImageUrl(image.large_url) : null,
           is_primary: image.is_primary || false,

@@ -23,11 +23,16 @@ export async function GET(request, { params }) {
       [id]
     );
 
-    const images = (result.rows || []).map((row) => ({
-      thumb_url: row.thumb_url ? publicImageUrl(row.thumb_url) : null,
-      original_url: row.original_url ? publicImageUrl(row.original_url) : null,
-      is_primary: row.is_primary || false,
-    }));
+    const images = (result.rows || []).map((row) => {
+      const original = row.original_url ? publicImageUrl(row.original_url) : null;
+      // If thumb is missing/broken, fall back to original so hover never shows "no image".
+      const thumb = row.thumb_url ? publicImageUrl(row.thumb_url) : original;
+      return {
+        thumb_url: thumb,
+        original_url: original,
+        is_primary: row.is_primary || false,
+      };
+    });
 
     return new Response(JSON.stringify({ images }), {
       status: 200,
