@@ -45,7 +45,13 @@ async function fetchWebCategoriesCached() {
   }
 }
 
-async function fetchVariantsLookupData() {
+function invalidateVariantsLookupCache() {
+  __variantsLookupCache = null;
+  __variantsLookupInflight = null;
+}
+
+async function fetchVariantsLookupData({ force = false } = {}) {
+  if (force) invalidateVariantsLookupCache();
   if (__variantsLookupCache) return __variantsLookupCache;
   if (__variantsLookupInflight) return __variantsLookupInflight;
 
@@ -440,6 +446,7 @@ export function ProductVariants({ data, onChange }) {
   const [packageOptions, setPackageOptions] = useState({});
   const [error, setError] = useState(null);
   const [currencies, setCurrencies] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const dataRef = useRef(data);
   const onChangeRef = useRef(onChange);
@@ -448,89 +455,93 @@ export function ProductVariants({ data, onChange }) {
     onChangeRef.current = onChange;
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Reset error state
-        setError(null);
+  const fetchData = async ({ force = false } = {}) => {
+    try {
+      setRefreshing(true);
+      // Reset error state
+      setError(null);
 
-        const { productsList, pricesData, stocksData, packageOptionsData, currencyData } =
-          await fetchVariantsLookupData();
+      const { productsList, pricesData, stocksData, packageOptionsData, currencyData } =
+        await fetchVariantsLookupData({ force });
 
-        setProducts(productsList);
+      setProducts(productsList);
 
-        const productIds = (productsList || []).map((p) => p.id);
+      const productIds = (productsList || []).map((p) => p.id);
 
-        setCurrencies(Array.isArray(currencyData) ? currencyData : []);
-        onChangeRef.current({ ...dataRef.current, currencies: currencyData });
+      setCurrencies(Array.isArray(currencyData) ? currencyData : []);
+      onChangeRef.current({ ...dataRef.current, currencies: currencyData });
 
-        // Map prices
-        const pricesMap = {};
-        if (Array.isArray(pricesData)) {
-          pricesData.forEach((price) => {
-            if (price && price.product_id && productIds.includes(price.product_id)) {
-              pricesMap[price.product_id] = {
-                price: price.price || 0,
-                discount: price.discount || 0,
-                currency: price.currency || 'USD',
-                is_multi: price.is_multi,
-                multi_currency_prices: price.multi_currency_prices,
-              };
-            }
-          });
-        }
-        setProductPrices(pricesMap);
-        onChangeRef.current({ ...dataRef.current, prices: pricesMap });
-
-        // Map stocks
-        const stocksMap = {};
-        if (Array.isArray(stocksData)) {
-          stocksData.forEach((stock) => {
-            if (stock && stock.product_id && productIds.includes(stock.product_id)) {
-              stocksMap[stock.product_id] = {
-                quantity: stock.quantity || 0,
-                unit: stock.unit || 'pcs',
-                status: stock.stock_status || 'in_stock',
-              };
-            }
-          });
-        }
-        setProductStocks(stocksMap);
-
-        // Map package options
-        const optionsMap = {};
-        if (Array.isArray(packageOptionsData)) {
-          packageOptionsData.forEach((option) => {
-            if (option && option.product_id && productIds.includes(option.product_id)) {
-              if (!optionsMap[option.product_id]) {
-                optionsMap[option.product_id] = [];
-              }
-              optionsMap[option.product_id].push({
-                id: option.id,
-                name: option.name,
-                count: option.count,
-                discount: option.discount,
-                status: option.status,
-                stock_status: option.stock_status,
-                order_index: option.order_index,
-              });
-              optionsMap[option.product_id].sort((a, b) => a.order_index - b.order_index);
-            }
-          });
-        }
-        setPackageOptions(optionsMap);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setError(error.message || 'Failed to fetch data');
-        // Set default empty values
-        setProducts([]);
-        setProductPrices({});
-        setProductStocks({});
-        setPackageOptions({});
+      // Map prices
+      const pricesMap = {};
+      if (Array.isArray(pricesData)) {
+        pricesData.forEach((price) => {
+          if (price && price.product_id && productIds.includes(price.product_id)) {
+            pricesMap[price.product_id] = {
+              price: price.price || 0,
+              discount: price.discount || 0,
+              currency: price.currency || 'USD',
+              is_multi: price.is_multi,
+              multi_currency_prices: price.multi_currency_prices,
+            };
+          }
+        });
       }
-    };
+      setProductPrices(pricesMap);
+      onChangeRef.current({ ...dataRef.current, prices: pricesMap });
 
+      // Map stocks
+      const stocksMap = {};
+      if (Array.isArray(stocksData)) {
+        stocksData.forEach((stock) => {
+          if (stock && stock.product_id && productIds.includes(stock.product_id)) {
+            stocksMap[stock.product_id] = {
+              quantity: stock.quantity || 0,
+              unit: stock.unit || 'pcs',
+              status: stock.stock_status || 'in_stock',
+            };
+          }
+        });
+      }
+      setProductStocks(stocksMap);
+
+      // Map package options
+      const optionsMap = {};
+      if (Array.isArray(packageOptionsData)) {
+        packageOptionsData.forEach((option) => {
+          if (option && option.product_id && productIds.includes(option.product_id)) {
+            if (!optionsMap[option.product_id]) {
+              optionsMap[option.product_id] = [];
+            }
+            optionsMap[option.product_id].push({
+              id: option.id,
+              name: option.name,
+              count: option.count,
+              discount: option.discount,
+              status: option.status,
+              stock_status: option.stock_status,
+              order_index: option.order_index,
+            });
+            optionsMap[option.product_id].sort((a, b) => a.order_index - b.order_index);
+          }
+        });
+      }
+      setPackageOptions(optionsMap);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError(error.message || 'Failed to fetch data');
+      // Set default empty values
+      setProducts([]);
+      setProductPrices({});
+      setProductStocks({});
+      setPackageOptions({});
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stable: fetch once on mount
   }, []);
 
   const addVariant = () => {
@@ -660,14 +671,25 @@ export function ProductVariants({ data, onChange }) {
           {error}
         </div>
       )}
-      <button
-        type="button"
-        className="add-variant-btn"
-        onClick={addVariant}
-        disabled={getAvailableProducts().length === 0}
-      >
-        Add Variant
-      </button>
+      <div className="variants-actions">
+        <button
+          type="button"
+          className="add-variant-btn"
+          onClick={addVariant}
+          disabled={getAvailableProducts().length === 0}
+        >
+          Add Variant
+        </button>
+        <button
+          type="button"
+          className="refresh-variants-btn"
+          onClick={() => fetchData({ force: true })}
+          disabled={refreshing}
+          title="Reload latest prices/stocks/package options"
+        >
+          {refreshing ? 'Refreshing…' : 'Refresh Prices/Stocks'}
+        </button>
+      </div>
       
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="variants-table">
@@ -876,6 +898,30 @@ export function ProductVariants({ data, onChange }) {
           </Droppable>
         </div>
       </DragDropContext>
+      <style jsx>{`
+        .variants-actions {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          margin-bottom: 12px;
+          flex-wrap: wrap;
+        }
+
+        .refresh-variants-btn {
+          border: 1px solid #ddd;
+          background: #fff;
+          color: #333;
+          padding: 8px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+        }
+
+        .refresh-variants-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      `}</style>
     </div>
   );
 }
@@ -1385,17 +1431,63 @@ export default function AddProductDisplay() {
         return;
       }
 
-      // Calculate price range from variants
+      // Always refresh latest prices/currency rates at submit time
+      const selectedProductIds = (displayData.variants || [])
+        .map((v) => v?.product_id)
+        .filter(Boolean);
+      let latestPricesMap = null;
+      let latestCurrencies = null;
+      try {
+        const [pricesRes, currencyRes] = await Promise.all([
+          fetch('/api/products/prices', { cache: 'no-store' }),
+          fetch('/api/currency-rates', { cache: 'no-store' }),
+        ]);
+        if (pricesRes.ok) {
+          const pricesData = await pricesRes.json();
+          latestPricesMap = {};
+          if (Array.isArray(pricesData)) {
+            for (const price of pricesData) {
+              if (price?.product_id && selectedProductIds.includes(price.product_id)) {
+                latestPricesMap[price.product_id] = price;
+              }
+            }
+          }
+        }
+        if (currencyRes.ok) {
+          latestCurrencies = await currencyRes.json();
+        }
+      } catch (err) {
+        console.warn('Failed to refresh latest prices/currencies at submit time:', err);
+      }
+
+      const refreshedVariants = (displayData.variants || []).map((variant) => {
+        if (!variant?.product_id || !latestPricesMap) return variant;
+        const p = latestPricesMap[variant.product_id];
+        if (!p) return variant;
+        return {
+          ...variant,
+          price_info: {
+            price: p.price,
+            currency: p.currency,
+            is_multi: p.is_multi,
+            multi_currency_prices: p.multi_currency_prices,
+            discount: p.discount,
+            exchange_rates: Array.isArray(latestCurrencies) ? latestCurrencies : variant?.price_info?.exchange_rates,
+          },
+        };
+      });
+
+      // Calculate price range from variants (use refreshed prices)
       let minPrice = null;
       let maxPrice = null;
       let hasVariants = true;
       let priceArray = [];  
 
-      if (displayData.variants && displayData.variants.length > 0) {
-          if(displayData.variants.length === 1){
+      if (refreshedVariants && refreshedVariants.length > 0) {
+          if(refreshedVariants.length === 1){
             hasVariants = false;
           }
-          displayData.variants.forEach(variant => {
+          refreshedVariants.forEach(variant => {
             if (!variant.product_id || !variant.price_info) return;
 
           const priceInfo = variant.price_info;
@@ -1445,6 +1537,8 @@ export default function AddProductDisplay() {
       // Add price information and variants flag to the submission data
       const submissionData = {
         ...displayData,
+        variants: refreshedVariants,
+        currencies: latestCurrencies ?? displayData.currencies,
         has_variants: hasVariants,
         min_price: minPrice,
         max_price: maxPrice,

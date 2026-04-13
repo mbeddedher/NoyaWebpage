@@ -161,17 +161,63 @@ export default function EditProductDisplay({ id }) {
         return;
       }
 
-       // Calculate price range from variants
+       // Always refresh latest prices/currency rates at submit time
+       const selectedProductIds = (displayData.variants || [])
+         .map((v) => v?.product_id)
+         .filter(Boolean);
+       let latestPricesMap = null;
+       let latestCurrencies = null;
+       try {
+         const [pricesRes, currencyRes] = await Promise.all([
+           fetch('/api/products/prices', { cache: 'no-store' }),
+           fetch('/api/currency-rates', { cache: 'no-store' }),
+         ]);
+         if (pricesRes.ok) {
+           const pricesData = await pricesRes.json();
+           latestPricesMap = {};
+           if (Array.isArray(pricesData)) {
+             for (const price of pricesData) {
+               if (price?.product_id && selectedProductIds.includes(price.product_id)) {
+                 latestPricesMap[price.product_id] = price;
+               }
+             }
+           }
+         }
+         if (currencyRes.ok) {
+           latestCurrencies = await currencyRes.json();
+         }
+       } catch (err) {
+         console.warn('Failed to refresh latest prices/currencies at submit time:', err);
+       }
+
+       const refreshedVariants = (displayData.variants || []).map((variant) => {
+         if (!variant?.product_id || !latestPricesMap) return variant;
+         const p = latestPricesMap[variant.product_id];
+         if (!p) return variant;
+         return {
+           ...variant,
+           price_info: {
+             price: p.price,
+             currency: p.currency,
+             is_multi: p.is_multi,
+             multi_currency_prices: p.multi_currency_prices,
+             discount: p.discount,
+             exchange_rates: Array.isArray(latestCurrencies) ? latestCurrencies : variant?.price_info?.exchange_rates,
+           },
+         };
+       });
+
+       // Calculate price range from variants (use refreshed prices)
        let minPrice = null;
        let maxPrice = null;
        let hasVariants = true;
        let priceArray = [];  
  
-       if (displayData.variants && displayData.variants.length > 0) {
-           if(displayData.variants.length === 1){
+       if (refreshedVariants && refreshedVariants.length > 0) {
+           if(refreshedVariants.length === 1){
              hasVariants = false;
            }
-           displayData.variants.forEach(variant => {
+           refreshedVariants.forEach(variant => {
              if (!variant.product_id || !variant.price_info) return;
  
            const priceInfo = variant.price_info;
@@ -221,6 +267,8 @@ export default function EditProductDisplay({ id }) {
 
       const submissionData = {
         ...displayData,
+        variants: refreshedVariants,
+        currencies: latestCurrencies ?? displayData.currencies,
         has_variants: hasVariants,
         min_price: minPrice,
         max_price: maxPrice,
