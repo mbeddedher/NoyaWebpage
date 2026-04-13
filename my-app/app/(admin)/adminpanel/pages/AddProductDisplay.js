@@ -1337,7 +1337,7 @@ export function ProductImages({ data, onChange }) {
 export default function AddProductDisplay() {
   const { closeTab, activeTabId, getTabFormData, saveTabFormData } = useAdminTabs();
   const [loading, setLoading] = useState(false);
-  const [currentSection, setCurrentSection] = useState('details');
+  const lastPersistedRef = useRef('');
   const initialFormState = {
     name: '',
     description: '',
@@ -1354,6 +1354,8 @@ export default function AddProductDisplay() {
     displayData: initialFormState,
     currentSection: 'details'
   };
+
+  const [currentSection, setCurrentSection] = useState(formData.currentSection || 'details');
 
   const [displayData, setDisplayData] = useState(formData.displayData || initialFormState);
 
@@ -1393,22 +1395,16 @@ export default function AddProductDisplay() {
     return errors;
   };
   
-  // Restore saved section if available
-  useEffect(() => {
-    if (formData.currentSection) {
-      setCurrentSection(formData.currentSection);
-    }
-  }, [activeTabId, formData.currentSection]);
-
   // Save form data whenever it changes
   useEffect(() => {
     if (activeTabId && !loading) {
       // Avoid persisting large derived lookup maps into localStorage
       const { prices, currencies, ...displayDataToPersist } = displayData || {};
-      saveTabFormData(activeTabId, {
-        displayData: displayDataToPersist,
-        currentSection
-      });
+      const payload = { displayData: displayDataToPersist, currentSection };
+      const key = JSON.stringify(payload);
+      if (key === lastPersistedRef.current) return;
+      lastPersistedRef.current = key;
+      saveTabFormData(activeTabId, payload);
     }
   }, [displayData, currentSection, activeTabId, loading, saveTabFormData]);
 

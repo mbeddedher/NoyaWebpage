@@ -239,7 +239,26 @@ export function AdminTabsProvider({ children }) {
     try {
       const savedState = localStorage.getItem('adminTabsState');
       if (savedState) {
-        setTabsState(JSON.parse(savedState));
+        const parsed = JSON.parse(savedState);
+        // Migrate/sanitize old persisted formData to prevent UI lockups:
+        // - remove large derived lookup maps (prices/currencies) stored inside displayData
+        // - ensure activeTabId points to an existing tab
+        const sanitized = {
+          ...parsed,
+          formData: { ...(parsed.formData || {}) },
+          tabs: Array.isArray(parsed.tabs) ? parsed.tabs : [],
+        };
+        for (const [tabId, data] of Object.entries(sanitized.formData || {})) {
+          if (data && typeof data === 'object' && data.displayData && typeof data.displayData === 'object') {
+            const { prices, currencies, ...rest } = data.displayData;
+            sanitized.formData[tabId] = { ...data, displayData: rest };
+          }
+        }
+        const activeExists = sanitized.tabs.some((t) => t?.id === sanitized.activeTabId);
+        if (!activeExists) {
+          sanitized.activeTabId = sanitized.tabs[0]?.id || null;
+        }
+        setTabsState(sanitized);
       }
     } catch (error) {
       console.error('Error loading saved tabs:', error);

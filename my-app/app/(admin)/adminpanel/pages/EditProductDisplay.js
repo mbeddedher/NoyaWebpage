@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import AddContentLayout from '../layouts/AddContentLayout';
 import { useAdminTabs } from '../../../context/AdminTabsContext';
@@ -10,7 +10,7 @@ export default function EditProductDisplay({ id }) {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentSection, setCurrentSection] = useState('details');
+  const lastPersistedRef = useRef('');
   
   // Get saved form data or use initial state
   const formData = activeTabId ? getTabFormData(activeTabId) : {
@@ -18,6 +18,7 @@ export default function EditProductDisplay({ id }) {
     currentSection: 'details'
   };
 
+  const [currentSection, setCurrentSection] = useState(formData.currentSection || 'details');
   const [displayData, setDisplayData] = useState(formData.displayData || null);
   
   // Fetch product display data
@@ -91,20 +92,15 @@ export default function EditProductDisplay({ id }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- id + saved display gate; formData in deps would over-fetch
   }, [id]);
 
-  // Restore saved section if available
-  useEffect(() => {
-    if (formData.currentSection) {
-      setCurrentSection(formData.currentSection);
-    }
-  }, [activeTabId, formData.currentSection]);
-
   // Save form data whenever it changes
   useEffect(() => {
     if (activeTabId && !initialLoading) {
-      saveTabFormData(activeTabId, {
-        displayData,
-        currentSection
-      });
+      const { prices, currencies, ...displayDataToPersist } = displayData || {};
+      const payload = { displayData: displayDataToPersist, currentSection };
+      const key = JSON.stringify(payload);
+      if (key === lastPersistedRef.current) return;
+      lastPersistedRef.current = key;
+      saveTabFormData(activeTabId, payload);
     }
   }, [displayData, currentSection, activeTabId, initialLoading, saveTabFormData]);
 
