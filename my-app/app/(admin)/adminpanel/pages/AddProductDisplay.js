@@ -834,6 +834,20 @@ export function ProductVariants({ data, onChange }) {
 export function ProductImages({ data, onChange }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({});
+  const [cropQueue, setCropQueue] = useState([]);
+  const [cropIndex, setCropIndex] = useState(0);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [cropSrc, setCropSrc] = useState('');
+  const [cropFile, setCropFile] = useState(null);
+  const [cropRect, setCropRect] = useState({ x: 0, y: 0, w: 0, h: 0 }); // in displayed image px
+  const [cropDragging, setCropDragging] = useState(null); // { mode, startX, startY, startRect }
+  const cropImgRef = useRef(null);
+  const cropWrapRef = useRef(null);
+  const cropObjectUrlRef = useRef('');
+
+  const THUMB_W = 280;
+  const THUMB_H = 420;
+  const THUMB_AR = THUMB_W / THUMB_H;
 
   // Ensure data.images exists
   const images = data?.images || [];
@@ -857,23 +871,177 @@ export function ProductImages({ data, onChange }) {
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     console.log('Files selected for upload:', files.map(f => ({ name: f.name, type: f.type, size: f.size })));
-    setUploading(true);
+    // reset input so selecting same file again triggers change
+    e.target.value = '';
+    if (!files.length) return;
 
+    // Open crop UI (process sequentially)
+    setCropQueue(files);
+    setCropIndex(0);
+    setUploading(false);
+    setUploadProgress({});
+    openCropForFile(files[0]);
+    setCropOpen(true);
+    return;
+  };
+
+  const openCropForFile = (file) => {
+    if (!file) return;
+    setCropFile(file);
+    if (cropObjectUrlRef.current) {
+      try { URL.revokeObjectURL(cropObjectUrlRef.current); } catch {}
+      cropObjectUrlRef.current = '';
+    }
+    const url = URL.createObjectURL(file);
+    cropObjectUrlRef.current = url;
+    setCropSrc(url);
+  };
+
+  const initCropRectToImage = () => {
+    const img = cropImgRef.current;
+    if (!img) return;
+    const displayW = img.clientWidth || 0;
+    const displayH = img.clientHeight || 0;
+    if (!displayW || !displayH) return;
+
+    // Start with a centered rectangle taking ~60% of the shortest dimension
+    const targetW = Math.min(displayW * 0.7, displayH * 0.7 * THUMB_AR);
+    const targetH = targetW / THUMB_AR;
+    const x = Math.max(0, (displayW - targetW) / 2);
+    const y = Math.max(0, (displayH - targetH) / 2);
+    setCropRect({ x, y, w: targetW, h: targetH });
+  };
+
+  const clampRect = (rect) => {
+    const img = cropImgRef.current;
+    if (!img) return rect;
+    const maxW = img.clientWidth || 0;
+    const maxH = img.clientHeight || 0;
+    let { x, y, w, h } = rect;
+
+    w = Math.max(20, Math.min(w, maxW));
+    h = w / THUMB_AR;
+    if (h > maxH) {
+      h = maxH;
+      w = h * THUMB_AR;
+    }
+
+    x = Math.max(0, Math.min(x, maxW - w));
+    y = Math.max(0, Math.min(y, maxH - h));
+    return { x, y, w, h };
+  };
+
+  const onCropPointerDown = (ev, mode) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const startX = ev.clientX;
+    const startY = ev.clientY;
+    setCropDragging({
+      mode,
+      startX,
+      startY,
+      startRect: cropRect,
+    });
+  };
+
+  const onCropPointerMove = (ev) => {
+    if (!cropDragging) return;
+    const dx = ev.clientX - cropDragging.startX;
+    const dy = ev.clientY - cropDragging.startY;
+    const r0 = cropDragging.startRect;
+
+    if (cropDragging.mode === 'move') {
+      setCropRect(clampRect({ ...r0, x: r0.x + dx, y: r0.y + dy }));
+      return;
+    }
+
+    // Resize from corners; keep aspect ratio
+    const img = cropImgRef.current;
+    if (!img) return;
+    const maxW = img.clientWidth || 0;
+    const maxH = img.clientHeight || 0;
+
+    let x = r0.x;
+    let y = r0.y;
+    let w = r0.w;
+    let h = r0.h;
+
+    if (cropDragging.mode === 'se') {
+      w = r0.w + dx;
+      w = Math.max(20, w);
+      h = w / THUMB_AR;
+    } else if (cropDragging.mode === 'sw') {
+      w = r0.w - dx;
+      w = Math.max(20, w);
+      h = w / THUMB_AR;
+      x = r0.x + (r0.w - w);
+    } else if (cropDragging.mode === 'ne') {
+      w = r0.w + dx;
+      w = Math.max(20, w);
+      h = w / THUMB_AR;
+      y = r0.y + (r0.h - h);
+    } else if (cropDragging.mode === 'nw') {
+      w = r0.w - dx;
+      w = Math.max(20, w);
+      h = w / THUMB_AR;
+      x = r0.x + (r0.w - w);
+      y = r0.y + (r0.h - h);
+    }
+
+    // Keep inside bounds (simple clamp)
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+    if (x + w > maxW) w = maxW - x, h = w / THUMB_AR;
+    if (y + h > maxH) h = maxH - y, w = h * THUMB_AR;
+
+    setCropRect(clampRect({ x, y, w, h }));
+  };
+
+  const onCropPointerUp = () => setCropDragging(null);
+
+  useEffect(() => {
+    if (!cropOpen) return;
+    const onMove = (e) => onCropPointerMove(e);
+    const onUp = () => onCropPointerUp();
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cropOpen, cropDragging]);
+
+  useEffect(() => {
+    // Clean up object URL on unmount
+    return () => {
+      if (cropObjectUrlRef.current) {
+        try { URL.revokeObjectURL(cropObjectUrlRef.current); } catch {}
+        cropObjectUrlRef.current = '';
+      }
+    };
+  }, []);
+
+  const uploadCroppedFile = async ({ file, crop }) => {
+    setUploading(true);
     try {
       const newImages = [];
       
       // Upload files one by one to ensure proper handling
-      for (const file of files) {
-        try {
+      for (const f of [file]) {
+        try {          
           // Get file details first
-          const resolution = await getImageResolution(file);
-          const fileSize = Math.round(file.size / 1024); // Convert to KB
-          const format = file.type.split('/')[1].toUpperCase();
+          const resolution = await getImageResolution(f);
+          const fileSize = Math.round(f.size / 1024); // Convert to KB
+          const format = f.type.split('/')[1].toUpperCase();
           console.log('File details:', { resolution, fileSize, format });
 
           // Upload the file
           const formData = new FormData();
-          formData.append('file', file);
+          formData.append('file', f);
+          if (crop) {
+            formData.append('crop', JSON.stringify(crop));
+          }
 
           console.log('Uploading file to server...');
           const response = await fetch('/api/upload', {
@@ -890,6 +1058,7 @@ export function ProductImages({ data, onChange }) {
 
           const newImage = {
             original_url: uploadResponse.url,
+            cart_url: uploadResponse.cart_url,
             is_primary: false,
             display_type: 'gallery', // kept for backward compatibility (not user-editable)
             alt_text: '',
@@ -898,7 +1067,8 @@ export function ProductImages({ data, onChange }) {
             order_index: images.length + newImages.length,
             file_size: uploadResponse.file_size ?? fileSize,
             resolution: uploadResponse.resolution ?? resolution,
-            format: uploadResponse.format || format
+            format: uploadResponse.format || format,
+            cart_dimensions: uploadResponse.cart_dimensions ?? { width: THUMB_W, height: THUMB_H },
           };
           console.log('Created new image object:', newImage);
           newImages.push(newImage);
@@ -922,6 +1092,59 @@ export function ProductImages({ data, onChange }) {
       alert('Failed to upload images. Please try again.');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const confirmCropAndUpload = async () => {
+    const img = cropImgRef.current;
+    if (!img || !cropFile) return;
+
+    const naturalW = img.naturalWidth || 0;
+    const naturalH = img.naturalHeight || 0;
+    const displayW = img.clientWidth || 0;
+    const displayH = img.clientHeight || 0;
+    if (!naturalW || !naturalH || !displayW || !displayH) return;
+
+    const scaleX = naturalW / displayW;
+    const scaleY = naturalH / displayH;
+
+    const crop = {
+      x: cropRect.x * scaleX,
+      y: cropRect.y * scaleY,
+      width: cropRect.w * scaleX,
+      height: cropRect.h * scaleY,
+    };
+
+    await uploadCroppedFile({ file: cropFile, crop });
+
+    // Move to next file or close modal
+    const nextIndex = cropIndex + 1;
+    if (nextIndex < cropQueue.length) {
+      setCropIndex(nextIndex);
+      openCropForFile(cropQueue[nextIndex]);
+      // init rect will happen on image load
+    } else {
+      setCropOpen(false);
+      setCropQueue([]);
+      setCropIndex(0);
+      setCropFile(null);
+      setCropSrc('');
+      if (cropObjectUrlRef.current) {
+        try { URL.revokeObjectURL(cropObjectUrlRef.current); } catch {}
+        cropObjectUrlRef.current = '';
+      }
+    }
+  };
+
+  const cancelCrop = () => {
+    setCropOpen(false);
+    setCropQueue([]);
+    setCropIndex(0);
+    setCropFile(null);
+    setCropSrc('');
+    if (cropObjectUrlRef.current) {
+      try { URL.revokeObjectURL(cropObjectUrlRef.current); } catch {}
+      cropObjectUrlRef.current = '';
     }
   };
 
@@ -1093,6 +1316,80 @@ export function ProductImages({ data, onChange }) {
         })}
       </div>
 
+      {cropOpen && (
+        <div className="crop-modal" role="dialog" aria-modal="true">
+          <div className="crop-modal__backdrop" onClick={cancelCrop} />
+          <div className="crop-modal__panel">
+            <div className="crop-modal__header">
+              <div>
+                <div className="crop-modal__title">Create Thumbnail Crop</div>
+                <div className="crop-modal__subtitle">
+                  Drag + resize the frame. Aspect ratio is fixed ({THUMB_W}×{THUMB_H}).
+                </div>
+              </div>
+              <button type="button" className="crop-modal__close" onClick={cancelCrop}>
+                ✕
+              </button>
+            </div>
+
+            <div className="crop-modal__body">
+              <div className="crop-stage" ref={cropWrapRef}>
+                {cropSrc && (
+                  <>
+                    <div className="crop-media">
+                      <img
+                        ref={cropImgRef}
+                        src={cropSrc}
+                        alt="Crop source"
+                        className="crop-image"
+                        onLoad={initCropRectToImage}
+                        draggable={false}
+                      />
+
+                      <div className="crop-dim" />
+
+                      <div
+                        className="crop-rect"
+                        style={{
+                          left: `${cropRect.x}px`,
+                          top: `${cropRect.y}px`,
+                          width: `${cropRect.w}px`,
+                          height: `${cropRect.h}px`,
+                        }}
+                        onPointerDown={(e) => onCropPointerDown(e, 'move')}
+                      >
+                        <div className="crop-handle nw" onPointerDown={(e) => onCropPointerDown(e, 'nw')} />
+                        <div className="crop-handle ne" onPointerDown={(e) => onCropPointerDown(e, 'ne')} />
+                        <div className="crop-handle sw" onPointerDown={(e) => onCropPointerDown(e, 'sw')} />
+                        <div className="crop-handle se" onPointerDown={(e) => onCropPointerDown(e, 'se')} />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="crop-modal__footer">
+              <div className="crop-modal__file">
+                {cropFile?.name ? (
+                  <span>
+                    File {cropIndex + 1}/{cropQueue.length}: <strong>{cropFile.name}</strong>
+                  </span>
+                ) : null}
+              </div>
+              <div className="crop-modal__actions">
+                <button type="button" className="crop-btn ghost" onClick={cancelCrop} disabled={uploading}>
+                  Cancel
+                </button>
+                <button type="button" className="crop-btn primary" onClick={confirmCropAndUpload} disabled={uploading}>
+                  {uploading ? 'Uploading...' : 'Confirm & Upload'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .image-item {
           border: 1px solid #ddd;
@@ -1210,6 +1507,180 @@ export function ProductImages({ data, onChange }) {
 
         .variant-default input[type="radio"]:checked {
           accent-color: #4a90e2;
+        }
+
+        .crop-modal {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          display: grid;
+          place-items: center;
+          padding: 16px;
+        }
+        .crop-modal__backdrop {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          backdrop-filter: blur(2px);
+        }
+        .crop-modal__panel {
+          position: relative;
+          width: min(1100px, 96vw);
+          height: min(88vh, 860px);
+          background: #0f1220;
+          color: #fff;
+          border-radius: 12px;
+          box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          overflow: hidden;
+          display: grid;
+          grid-template-rows: auto 1fr auto;
+        }
+        .crop-modal__header {
+          padding: 14px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
+        }
+        .crop-modal__title {
+          font-weight: 700;
+          letter-spacing: 0.2px;
+        }
+        .crop-modal__subtitle {
+          font-size: 12px;
+          opacity: 0.75;
+          margin-top: 2px;
+        }
+        .crop-modal__close {
+          border: 1px solid rgba(255,255,255,0.14);
+          background: rgba(255,255,255,0.06);
+          color: #fff;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          cursor: pointer;
+        }
+        .crop-modal__close:hover {
+          background: rgba(255,255,255,0.1);
+        }
+        .crop-modal__body {
+          padding: 14px;
+          overflow: hidden;
+        }
+        .crop-stage {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+          border-radius: 10px;
+          background: radial-gradient(1200px 600px at 30% 10%, rgba(74,144,226,0.25), transparent 60%),
+            #0a0c14;
+          border: 1px solid rgba(255,255,255,0.08);
+        }
+        .crop-media {
+          position: relative;
+          display: inline-block;
+          line-height: 0;
+          user-select: none;
+        }
+        .crop-image {
+          max-width: 100%;
+          max-height: 100%;
+          user-select: none;
+          -webkit-user-drag: none;
+          display: block;
+        }
+        .crop-dim {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.35);
+          pointer-events: none;
+        }
+        .crop-rect {
+          position: absolute;
+          border: 2px solid rgba(255, 255, 255, 0.95);
+          box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+          border-radius: 10px;
+          cursor: grab;
+          touch-action: none;
+        }
+        .crop-rect:active {
+          cursor: grabbing;
+        }
+        .crop-handle {
+          position: absolute;
+          width: 16px;
+          height: 16px;
+          border-radius: 6px;
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid rgba(0, 0, 0, 0.25);
+        }
+        .crop-handle.nw {
+          left: -8px;
+          top: -8px;
+          cursor: nwse-resize;
+        }
+        .crop-handle.ne {
+          right: -8px;
+          top: -8px;
+          cursor: nesw-resize;
+        }
+        .crop-handle.sw {
+          left: -8px;
+          bottom: -8px;
+          cursor: nesw-resize;
+        }
+        .crop-handle.se {
+          right: -8px;
+          bottom: -8px;
+          cursor: nwse-resize;
+        }
+        .crop-modal__footer {
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.03);
+        }
+        .crop-modal__file {
+          font-size: 12px;
+          opacity: 0.8;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .crop-modal__actions {
+          display: flex;
+          gap: 10px;
+        }
+        .crop-btn {
+          padding: 10px 14px;
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          cursor: pointer;
+          font-weight: 600;
+        }
+        .crop-btn.ghost {
+          background: rgba(255, 255, 255, 0.06);
+          color: #fff;
+        }
+        .crop-btn.ghost:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+        .crop-btn.primary {
+          background: #4a90e2;
+          border-color: rgba(0, 0, 0, 0.12);
+          color: #fff;
+        }
+        .crop-btn.primary:hover {
+          background: #357abd;
         }
       `}</style>
     </div>

@@ -12,6 +12,7 @@ export async function POST(request) {
   try {
     const data = await request.formData();
     const file = data.get('file');
+    const cropRaw = data.get('crop');
 
     if (!file) {
       return new Response(JSON.stringify({ error: 'No file uploaded' }), { status: 400 });
@@ -39,10 +40,53 @@ export async function POST(request) {
       .webp({ quality: 90, effort: 4 })
       .toBuffer();
 
-    const thumbWebpBuf = await sharp(buffer)
-      .resize(THUMB_WIDTH, THUMB_HEIGHT, { fit: 'cover', position: 'center' })
-      .webp({ quality: 70, effort: 4 })
-      .toBuffer();
+    let crop = null;
+    if (typeof cropRaw === 'string' && cropRaw.trim()) {
+      try {
+        crop = JSON.parse(cropRaw);
+      } catch {
+        crop = null;
+      }
+    }
+
+    const imgW = Number(imageInfo.width);
+    const imgH = Number(imageInfo.height);
+
+    const hasCrop =
+      crop &&
+      Number.isFinite(Number(crop.x)) &&
+      Number.isFinite(Number(crop.y)) &&
+      Number.isFinite(Number(crop.width)) &&
+      Number.isFinite(Number(crop.height)) &&
+      Number(crop.width) > 1 &&
+      Number(crop.height) > 1 &&
+      Number.isFinite(imgW) &&
+      Number.isFinite(imgH) &&
+      imgW > 1 &&
+      imgH > 1;
+
+    const safeCrop = hasCrop
+      ? {
+          left: Math.max(0, Math.min(imgW - 1, Math.round(Number(crop.x)))),
+          top: Math.max(0, Math.min(imgH - 1, Math.round(Number(crop.y)))),
+          width: Math.max(1, Math.min(imgW, Math.round(Number(crop.width)))),
+          height: Math.max(1, Math.min(imgH, Math.round(Number(crop.height)))),
+        }
+      : null;
+
+    // Clamp crop so it always stays inside the image
+    if (safeCrop) {
+      if (safeCrop.left + safeCrop.width > imgW) safeCrop.width = Math.max(1, imgW - safeCrop.left);
+      if (safeCrop.top + safeCrop.height > imgH) safeCrop.height = Math.max(1, imgH - safeCrop.top);
+    }
+
+    const thumbBase = safeCrop
+      ? sharp(buffer)
+          .extract(safeCrop)
+          .resize(THUMB_WIDTH, THUMB_HEIGHT, { fit: 'cover', position: 'center' })
+      : sharp(buffer).resize(THUMB_WIDTH, THUMB_HEIGHT, { fit: 'cover', position: 'center' });
+
+    const thumbWebpBuf = await thumbBase.webp({ quality: 70, effort: 4 }).toBuffer();
 
     if (isBlobStorageEnabled()) {
       const token = process.env.BLOB_READ_WRITE_TOKEN;
