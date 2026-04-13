@@ -4,7 +4,7 @@ import {
   generateImageVersionsWithFallback,
   deleteImageVersions,
 } from '../../../../lib/imageProcessor';
-import { publicImageUrl } from '~/lib/imageUrls';
+import { normalizeStoredImageRef, publicImageUrl } from '~/lib/imageUrls';
 
 // GET a single product display
 export async function GET(request, { params }) {
@@ -33,89 +33,74 @@ export async function GET(request, { params }) {
             SELECT 
               pd.*,
               wc.name as category_name,
-              (
-                SELECT COALESCE(
-                  json_agg(
-                    json_build_object(
-                      'id', i.id,
-                      'original_url', i.original_url,
-                      'thumb_url', i.thumb_url,
-                      'medium_url', i.medium_url,
-                      'large_url', i.large_url,
-                      'is_primary', i.is_primary,
-                      'in_thumb', COALESCE(i.in_thumb, TRUE),
-                      'hide', COALESCE(i.hide, FALSE),
-                      'display_type', i.display_type,
-                      'alt_text', i.alt_text,
-                      'order_index', i.order_index,
-                      'file_size', i.file_size,
-                      'resolution', i.resolution,
-                      'format', i.format
-                    )
-                    ORDER BY i.order_index, i.id
-                  ),
-                  '[]'::json
-                )
-                FROM images i
-                WHERE i.display_id = $1
-              ) as images,
-              (
-                SELECT COALESCE(
-                  json_agg(
-                    json_build_object(
-                      'id', v.id,
-                      'product_id', v.product_id,
-                      'size', v.size,
-                      'status', v.status,
-                      'order_index', v.order_index,
-                      'has_package_options', v.has_package_options,
-                      'price_info', (
-                        SELECT json_build_object(
-                          'price', p.price,
-                          'currency', p.currency,
-                          'is_multi', p.is_multi,
-                          'multi_currency_prices', (
-                            SELECT COALESCE(
-                              json_agg(
-                                json_build_object(
-                                  'id', mcp.id,
-                                  'currency', mcp.currency,
-                                  'price', mcp.price
-                                )
-                              ),
-                              '[]'::json
-                            )
-                            FROM multi_currency_prices mcp
-                            WHERE mcp.product_id = v.product_id
+              (SELECT json_agg(
+                json_build_object(
+                  'id', i.id,
+                  'original_url', i.original_url,
+                  'thumb_url', i.thumb_url,
+                  'medium_url', i.medium_url,
+                  'large_url', i.large_url,
+                  'is_primary', i.is_primary,
+                  'in_thumb', COALESCE(i.in_thumb, TRUE),
+                  'hide', COALESCE(i.hide, FALSE),
+                  'display_type', i.display_type,
+                  'alt_text', i.alt_text,
+                  'order_index', i.order_index,
+                  'file_size', i.file_size,
+                  'resolution', i.resolution,
+                  'format', i.format
+                ) ORDER BY i.order_index
+              )
+              FROM images i 
+              WHERE i.display_id = $1) as images,
+              (SELECT json_agg(
+                json_build_object(
+                  'id', v.id,
+                  'product_id', v.product_id,
+                  'size', v.size,
+                  'status', v.status,
+                  'order_index', v.order_index,
+                  'has_package_options', v.has_package_options,
+                  'price_info', (
+                    SELECT json_build_object(
+                      'price', p.price,
+                      'currency', p.currency,
+                      'is_multi', p.is_multi,
+                      'multi_currency_prices', (
+                        SELECT COALESCE(json_agg(
+                          json_build_object(
+                            'id', pd.id,
+                            'currency', pd.currency,
+                            'price', pd.price
                           )
-                        )
-                        FROM prices p
-                        WHERE p.product_id = v.product_id
-                      ),
-                      'package_options', (
-                        SELECT COALESCE(json_agg(po.* ORDER BY po.order_index), '[]'::json)
-                        FROM (
-                          SELECT
-                            id,
-                            name,
-                            count,
-                            discount,
-                            status,
-                            stock_status,
-                            order_index
-                          FROM package_options
-                          WHERE product_id = v.product_id
-                          ORDER BY order_index
-                        ) po
+                        ), '[]'::json)
+                        FROM multi_currency_prices pd
+                        WHERE pd.product_id = v.product_id
                       )
                     )
-                    ORDER BY v.order_index, v.id
+                    FROM prices p
+                    WHERE p.product_id = v.product_id
                   ),
-                  '[]'::json
-                )
-                FROM product_variants v
-                WHERE v.display_id = $1
-              ) as variants
+                  'package_options', (
+                    SELECT COALESCE(json_agg(po.* ORDER BY po.order_index), '[]'::json)
+                    FROM (
+                      SELECT 
+                        id,
+                        name,
+                        count,
+                        discount,
+                        status,
+                        stock_status,
+                        order_index
+                      FROM package_options
+                      WHERE product_id = v.product_id
+                      ORDER BY order_index
+                    ) po
+                  )
+                ) ORDER BY v.order_index
+              )
+              FROM product_variants v 
+              WHERE v.display_id = $1) as variants
             FROM product_display pd
             LEFT JOIN web_categories wc ON pd.category_id = wc.id
             WHERE pd.id = $1`;  
@@ -300,13 +285,16 @@ export async function PUT(request, { params }) {
       );
       const reusedOriginalUrls = new Set();
       for (const img of images || []) {
-        const o = String(img?.original_url || '').trim();
-        const u = String(img?.url || '').trim();
+        const oRaw = String(img?.original_url || '').trim();
+        const uRaw = String(img?.url || '').trim();
+        const o = normalizeStoredImageRef(oRaw);
+        const u = normalizeStoredImageRef(uRaw);
         if (o) reusedOriginalUrls.add(o);
         if (u) reusedOriginalUrls.add(u);
       }
       for (const row of oldImages.rows) {
-        const orig = String(row.original_url || '').trim();
+        const origRaw = String(row.original_url || '').trim();
+        const orig = normalizeStoredImageRef(origRaw);
         if (orig && reusedOriginalUrls.has(orig)) {
           continue;
         }
