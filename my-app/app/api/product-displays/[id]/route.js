@@ -303,6 +303,11 @@ export async function PUT(request, { params }) {
       if (images && images.length > 0) {
         for (const image of images) {
           const versions = await generateImageVersionsWithFallback(image);
+          // If the client already generated a cropped thumb (cart_url), don't overwrite it by regenerating.
+          const preferredThumbUrl = image?.cart_url || image?.thumb_url || null;
+          if (preferredThumbUrl) {
+            versions.thumb_url = preferredThumbUrl;
+          }
 
           const validDisplayTypes = ['gallery', 'thumbnail', 'zoomed'];
           const displayType = validDisplayTypes.includes(image.display_type) 

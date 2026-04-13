@@ -206,6 +206,12 @@ export async function POST(request) {
       if (images && images.length > 0) {
         for (const image of images) {
           const versions = await generateImageVersionsWithFallback(image);
+          // IMPORTANT: If the client provides a cropped thumb URL (from /api/upload's `cart_url`),
+          // prefer it over regenerated thumb (which would be center-cropped again).
+          const preferredThumbUrl = image?.cart_url || image?.thumb_url || null;
+          if (preferredThumbUrl) {
+            versions.thumb_url = preferredThumbUrl;
+          }
 
           const validDisplayTypes = ['gallery', 'thumbnail', 'zoomed'];
           const displayType = validDisplayTypes.includes(image.display_type) 
