@@ -4,6 +4,42 @@ import fs from 'fs/promises';
 import { put, del } from '@vercel/blob';
 import { normalizeStoredImageRef, isBlobStorageEnabled } from './imageUrls.js';
 
+/**
+ * Like generateImageVersions, but if the source file/blob is missing (404, etc.),
+ * keep the row usable using URLs already on the payload (thumb_url / cart_url / medium / large).
+ */
+export async function generateImageVersionsWithFallback(imageLike) {
+  const refRaw = String(imageLike?.original_url || imageLike?.url || '').trim();
+  if (!refRaw) {
+    throw new Error('Missing image reference');
+  }
+  try {
+    return await generateImageVersions(refRaw);
+  } catch (err) {
+    const msg = String(err?.message || '');
+    const isMissing =
+      msg.includes('404') ||
+      msg.includes('Failed to fetch') ||
+      msg.includes('Not Found');
+    if (!isMissing) throw err;
+    console.warn(
+      'generateImageVersions: source unavailable, using client URLs',
+      refRaw,
+      msg
+    );
+    const original_url = /^https?:\/\//i.test(refRaw)
+      ? refRaw
+      : normalizeStoredImageRef(refRaw) || refRaw;
+    const thumb = imageLike.thumb_url || imageLike.cart_url || null;
+    return {
+      original_url,
+      thumb_url: thumb || (/^https?:\/\//i.test(original_url) ? original_url : null),
+      medium_url: imageLike.medium_url || null,
+      large_url: imageLike.large_url || null,
+    };
+  }
+}
+
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const IMAGES_DIR = path.join(PUBLIC_DIR, 'images');
 

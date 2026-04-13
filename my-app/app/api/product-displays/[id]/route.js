@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '~/lib/db';
-import { generateImageVersions, deleteImageVersions } from '../../../../lib/imageProcessor';
+import {
+  generateImageVersionsWithFallback,
+  deleteImageVersions,
+} from '../../../../lib/imageProcessor';
 import { publicImageUrl } from '~/lib/imageUrls';
 
 // GET a single product display
@@ -275,12 +278,23 @@ export async function PUT(request, { params }) {
         }
       }
 
-      // 3. Delete old images and their generated versions
+      // 3. Delete old images and their generated versions (skip blobs still referenced in this save — otherwise fetch 404 on re-insert)
       const oldImages = await client.query(
         'SELECT original_url, thumb_url, medium_url, large_url FROM images WHERE display_id = $1',
         [id]
       );
+      const reusedOriginalUrls = new Set();
+      for (const img of images || []) {
+        const o = String(img?.original_url || '').trim();
+        const u = String(img?.url || '').trim();
+        if (o) reusedOriginalUrls.add(o);
+        if (u) reusedOriginalUrls.add(u);
+      }
       for (const row of oldImages.rows) {
+        const orig = String(row.original_url || '').trim();
+        if (orig && reusedOriginalUrls.has(orig)) {
+          continue;
+        }
         await deleteImageVersions(row);
       }
       await client.query('DELETE FROM images WHERE display_id = $1', [id]);
@@ -288,7 +302,7 @@ export async function PUT(request, { params }) {
       // 4. Insert new images with generated versions
       if (images && images.length > 0) {
         for (const image of images) {
-          const versions = await generateImageVersions(image.original_url || image.url || '');
+          const versions = await generateImageVersionsWithFallback(image);
 
           const validDisplayTypes = ['gallery', 'thumbnail', 'zoomed'];
           const displayType = validDisplayTypes.includes(image.display_type) 

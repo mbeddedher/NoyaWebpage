@@ -1,5 +1,5 @@
 import { connectToDatabase } from '~/lib/db';
-import { generateImageVersions } from '../../../lib/imageProcessor';
+import { generateImageVersionsWithFallback } from '../../../lib/imageProcessor';
 
 export async function GET(request) {
   let client;
@@ -205,7 +205,7 @@ export async function POST(request) {
       // 3. Insert images with generated versions
       if (images && images.length > 0) {
         for (const image of images) {
-          const versions = await generateImageVersions(image.original_url || image.url || '');
+          const versions = await generateImageVersionsWithFallback(image);
 
           const validDisplayTypes = ['gallery', 'thumbnail', 'zoomed'];
           const displayType = validDisplayTypes.includes(image.display_type) 
