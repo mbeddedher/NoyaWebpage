@@ -7,11 +7,33 @@
   padding: 14px 16px 6px;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 200px);
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* <1200px: horizontal scroll row */
+.row {
+  display: flex;
   gap: 10px;
-  justify-content: start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+.row > .tile {
+  scroll-snap-align: start;
+}
+
+/* >=1200px: fit into 1200px by spacing tiles */
+@media (min-width: 1200px) {
+  .row {
+    overflow: visible;
+    padding-bottom: 0;
+    justify-content: space-between;
+  }
 }
 
 .tile {

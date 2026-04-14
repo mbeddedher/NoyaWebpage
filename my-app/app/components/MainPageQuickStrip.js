@@ -26,33 +26,35 @@ export default function MainPageQuickStrip({ items = HOME_QUICK_LINKS }) {
 
   return (
     <section className={styles.section} aria-label="Quick links">
-      <div className={styles.grid}>
-        {items.map((item) => {
-          const hasImage = Boolean(item.imageSrc?.trim());
-          const imageSrc = hasImage ? normalizeImageSrc(item.imageSrc) : '';
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={`${styles.tile} ${hasImage ? styles.tileHasImage : ''}`}
-            >
-              {hasImage && (
-                <>
-                  <span
-                    className={styles.bgImage}
-                    style={{ backgroundImage: `url(${imageSrc})` }}
-                    role="img"
-                    aria-hidden
-                  />
-                  <span className={styles.bgScrim} aria-hidden />
-                </>
-              )}
-              <span className={`${styles.label} ${hasImage ? '' : styles.labelPlain}`}>
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+      <div className={styles.container}>
+        <div className={styles.row}>
+          {items.map((item) => {
+            const hasImage = Boolean(item.imageSrc?.trim());
+            const imageSrc = hasImage ? normalizeImageSrc(item.imageSrc) : '';
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={`${styles.tile} ${hasImage ? styles.tileHasImage : ''}`}
+              >
+                {hasImage && (
+                  <>
+                    <span
+                      className={styles.bgImage}
+                      style={{ backgroundImage: `url(${imageSrc})` }}
+                      role="img"
+                      aria-hidden
+                    />
+                    <span className={styles.bgScrim} aria-hidden />
+                  </>
+                )}
+                <span className={`${styles.label} ${hasImage ? '' : styles.labelPlain}`}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
