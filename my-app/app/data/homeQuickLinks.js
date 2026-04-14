@@ -11,14 +11,39 @@
 /** @type {HomeQuickLink[]} */
 export const HOME_QUICK_LINKS = [
   {
-    id: 'example-1',
-    label: 'Örnek 1',
-    href: '/products',
-    // imageSrc: '/images/your-banner.webp',
+    id: 'budama-makasları',
+    label: 'Budama Makasları',
+    href: '/products?categories=1',
+    imageSrc: '/public/categories/prune-1.jpg',
   },
   {
-    id: 'example-2',
-    label: 'Örnek 2',
-    href: '/products?categories=1',
+    id: 'sprinkler',
+    label: 'Sprinkler',
+    href: '/products?categories=2',
+    imageSrc: '/public/categories/springler-2.jpg',
+  },
+  {
+    id: 'benzinli-makineler',
+    label: 'Benzinli Makineler',
+    href: '/products?categories=2',
+    imageSrc: '/public/categories/stihl.webp',
+  },
+  {
+    id: 'pompalar',
+    label: 'Pompalar',
+    href: '/products?categories=3',
+    imageSrc: '/public/categories/water-pump.webp',
+  },
+  {
+    id: 'hidroforlar',
+    label: 'Hidroforlar',
+    href: '/products?categories=4',
+    imageSrc: '/public/categories/hidrofor.jpg',
+  },
+  {
+    id: 'el-aletleri',
+    label: 'El Aletleri',
+    href: '/products?categories=5',
+    imageSrc: '/public/categories/el-aletleri.jpg',
   },
 ];

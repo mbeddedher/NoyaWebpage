@@ -16,11 +16,20 @@ export default function MainPageQuickStrip({ items = HOME_QUICK_LINKS }) {
     return null;
   }
 
+  const normalizeImageSrc = (src) => {
+    const s = String(src || '').trim();
+    if (!s) return '';
+    // next/public assets are served from "/" (not "/public")
+    if (s.startsWith('/public/')) return s.replace('/public/', '/');
+    return s;
+  };
+
   return (
     <section className={styles.section} aria-label="Quick links">
       <div className={styles.grid}>
         {items.map((item) => {
           const hasImage = Boolean(item.imageSrc?.trim());
+          const imageSrc = hasImage ? normalizeImageSrc(item.imageSrc) : '';
           return (
             <Link
               key={item.id}
@@ -31,7 +40,7 @@ export default function MainPageQuickStrip({ items = HOME_QUICK_LINKS }) {
                 <>
                   <span
                     className={styles.bgImage}
-                    style={{ backgroundImage: `url(${item.imageSrc})` }}
+                    style={{ backgroundImage: `url(${imageSrc})` }}
                     role="img"
                     aria-hidden
                   />
