@@ -9,17 +9,30 @@
   transition: transform 0.2s, box-shadow 0.2s;
   text-decoration: none;
   color: inherit;
-  aspect-ratio: 28 / 55;
+}
+
+.product-card:hover {
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.14);
+  transform: translateY(-2px);
+}
+
+/* Small gap between card border and thumbnail */
+.product-image-link {
+  display: block;
+  padding: 3px;
+  background: #fff;
 }
 
 /* Image area keeps thumbnail ratio 28:42 at any card width */
 .product-image {
   position: relative;
   width: 100%;
-  aspect-ratio: 28 / 42;
+  aspect-ratio: 1 / 1;
   flex-shrink: 0;
   overflow: hidden;
   background: #f5f5f5;
+  border-radius: 3px;
+
 }
 
 .product-image img {
@@ -89,7 +102,15 @@
 }
 
 .product-info {
-  padding: 15px;
+  padding: 10px 12px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-name-link {
+  text-decoration: none;
+  color: inherit;
 }
 
 .product-name {
@@ -110,6 +131,71 @@
   font-size: 16px;
   font-weight: 600;
   color: #2ecc71;
+}
+
+.product-ranking {
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.product-ranking__stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  line-height: 0;
+}
+
+.product-ranking__star {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.product-ranking__score {
+  padding-top: 1px;
+  font-size: 10px;
+  font-weight: 400;
+  color: #312d2b;
+}
+
+.size-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.size-button {
+  appearance: none;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #111827;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.size-button:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.size-button.selected {
+  background: rgba(74, 144, 226, 0.14);
+  border-color: rgba(74, 144, 226, 0.55);
+  color: #1e3a8a;
+}
+
+.size-button:focus-visible {
+  outline: 2px solid rgba(74, 144, 226, 0.5);
+  outline-offset: 2px;
 }
 
 @media (max-width: 768px) {

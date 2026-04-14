@@ -1,0 +1,334 @@
+<!doctype html>
+<!-- The DOCTYPE declaration above will set the     -->
+<!-- browser's rendering engine into                -->
+<!-- "Standards Mode". Replacing this declaration   -->
+<!-- with a "Quirks Mode" doctype is not supported. -->
+<html lang="en-gb">
+<head>
+<meta charset="UTF-8" />
+<link rel="canonical" href="https://drawsvg.org/tools.html" />
+<meta name="keywords" content="photo to svg generator, svg to png converter, image encoder, image meme creator, svg optimizer"/>
+<meta name="description" content="SVG tools, size optimizer, generator from photo, image meme creator, svg to png converter, image encoder."/>
+<meta name="google-site-verification" content="zl6C62oj4LjbBYW0qIQideklXZkzsGs_Wh7zUVO7h6g" />
+<meta name="ahrefs-site-verification" content="0fba5f5335b5c024664a25223640e713b759a23ee5c27151944cc5e577fc273d"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no">
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta http-equiv='content-language' content='en-gb'>
+<meta name="robots" content="index" />
+<link rel="shortcut icon" type="image/svg" href="resource-files/img/jay-rond.png"/>
+<link rel="apple-touch-icon" sizes="120x120" href="resource-files/img/apple-touch-icon-120x120-precomposed.png" />
+<link rel="apple-touch-icon" sizes="152x152" href="resource-files/img/apple-touch-icon-152x152-precomposed.png" />
+<link rel="stylesheet" href="home/css/w3-v4.css"/>
+<link rel="stylesheet" href="home/css/w3-theme-blue-grey.css"/>
+
+<title>
+SVG-PNG convert, image encode, photo-SVG generator, meme creator
+</title>
+<style type="text/css" media="screen" id="mstyle">
+#toolTitle {font-size:14px;font-weight:bold;padding:0px;}
+#toolSubTitle {font-size:smaller;font-weight:normal;font-style:italic;}
+#rootPanel {overflow: auto;position:absolute;left:0px;top:66px;bottom:28px;width:100%}
+#footerPanel {position:absolute;left:0px;bottom:0px;width:100%;height:28px;}
+#sidenav {
+width: 0;
+position: fixed;
+z-index: 1;
+top: 64px;
+bottom: 28px;
+left: 0;
+background-color: white;
+overflow-x: hidden;
+transition-property: width;
+-o-transition-property: width;
+-moz-transition-property: width;
+-webkit-transition-property: width;
+transition-timing-function: ease;
+transition-delay: 0ms;
+transition-duration: 400ms;
+}
+.sidenav .w3-col {width:70px}
+.sidenav .w3-rest p {font-size:smaller}
+.cardTool img {width: 100%;}
+.cardTool img:hover  {-webkit-transform: scale(1.25);-moz-transform: scale(1.25);-o-transform: scale(1.25);transform: scale(1.25);}
+.cardTool a {font-style:italic;}
+.w3-dropdown-content img {width:24px;margin-right:8px}
+.w3-dropdown-hover img {width:24px;margin-right:8px}
+</style>
+<script>
+function sideNavSwitch() {
+let sidenav = document.getElementById("sidenav");
+let left = document.getElementById("rootPanel");
+if (sidenav.style.width=="0px") {
+sidenav.style.width="12em";
+left.style.marginLeft="12em";
+} else {
+sidenav.style.width="0px";
+left.style.marginLeft="0px";
+}}
+</script>
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-KXRMTDJ');</script>
+<!-- End Google Tag Manager -->
+<!-- Google tag (gtag.js) -->
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-8DBJZGJLBY"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-8DBJZGJLBY');
+</script>
+<!-- End Google tag -->
+
+<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<script src="https://analytics.ahrefs.com/analytics.js" data-key="b+PgApVws8N0YZP70HJ9jw" async></script>
+
+
+<script language="javascript" src="tools/tools.nocache.js"></script>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({
+          google_ad_client: "ca-pub-7696536843680130",
+          enable_page_level_ads: true
+     });
+</script>
+<script type="application/ld+json">{"breadcrumb":{"itemListElement":[{"item":{"applicationCategory":"DesignApplication","offers":{"priceCurrency":"EUR","@type":"Offer","price":0},"@type":"WebApplication","name":"Meme Creator","description":"Create simple and easy memes with images and text","@id":"https://drawsvg.org/tools.html#meme:","applicationSuite":"DrawSVG","screenshot":"https://storage.googleapis.com/draw-svg/home/img/meme-screen-1.webp","@context":"https://schema.org","operatingSystem":"WEB","url":"https://drawsvg.org/tools.html#meme:","thumbnailUrl":"https://storage.googleapis.com/draw-svg/home/img/meme-mandrill-64.png"},"@type":"ListItem","position":1,"@context":"https://schema.org"},{"item":{"applicationCategory":"DesignApplication","offers":{"priceCurrency":"EUR","@type":"Offer","price":0},"@type":"WebApplication","description":"Turn your photos into Impressionist drawings","applicationSuite":"DrawSVG","screenshot":"https://storage.googleapis.com/draw-svg/home/img/scan-screen-3.webp","@context":"https://schema.org","operatingSystem":"WEB","url":"https://drawsvg.org/tools.html#scan:","softwareHelp":{"@type":"Guide","name":"SVG Draw user's guide chapter Photo-SVG generator","abstract":"Describes how to use the Photo-SVG generator","isPartOf":"https://drawsvg.org/doc/index.html","url":"https://drawsvg.org/doc/photo2svg.html"},"name":"Photo-SVG generator","@id":"https://drawsvg.org/tools.html#scan:","thumbnailUrl":"https://storage.googleapis.com/draw-svg/home/img/plage-64.png"},"@type":"ListItem","position":2,"@context":"https://schema.org"},{"item":{"applicationCategory":"DesignApplication","offers":{"priceCurrency":"EUR","@type":"Offer","price":0},"@type":"WebApplication","description":"Optimize SVG files","applicationSuite":"drawsvg.org","screenshot":"https://storage.googleapis.com/draw-svg/home/img/optimize-tool.webp","@context":"https://schema.org","operatingSystem":"WEB","url":"https://drawsvg.org/tools.html#optimize:","softwareHelp":{"@type":"Guide","name":"SVG Draw user's guide chapter optimize tool","abstract":"Describes how to use the SVG file optimization tool","isPartOf":"https://drawsvg.org/doc/index.html","url":"https://drawsvg.org/doc/optimize-svg.html"},"name":"Optimize-SVG","@id":"https://drawsvg.org/tools.html#optimize:","thumbnailUrl":"https://storage.googleapis.com/draw-svg/home/img/optim64.png"},"@type":"ListItem","position":3,"@context":"https://schema.org"},{"item":{"applicationCategory":"DesignApplication","offers":{"priceCurrency":"EUR","@type":"Offer","price":0},"@type":"WebApplication","description":"Convert SVG files in PNG images","applicationSuite":"drawsvg.org","screenshot":"https://storage.googleapis.com/draw-svg/home/img/svg2png-screen-3.webp","@context":"https://schema.org","operatingSystem":"WEB","url":"https://drawsvg.org/tools.html#svgPNG:","softwareHelp":{"@type":"Guide","name":"SVG Draw user's guide chapter SVG-PNG converter","abstract":"Describes how to use the SVG-PNG converter","isPartOf":"https://drawsvg.org/doc/index.html","url":"https://drawsvg.org/doc/svg2png.html"},"name":"PNG-Converter","@id":"https://drawsvg.org/tools.html#svgPNG:","thumbnailUrl":"https://storage.googleapis.com/draw-svg/home/img/picture64.png"},"@type":"ListItem","position":4,"@context":"https://schema.org"},{"item":{"applicationCategory":"DesignApplication","offers":{"priceCurrency":"EUR","@type":"Offer","price":0},"@type":"WebApplication","description":"Encode images in base64 for HTML inline insert","applicationSuite":"drawsvg.org","screenshot":"https://storage.googleapis.com/draw-svg/home/img/imgencode-screen-3.webp","@context":"https://schema.org","operatingSystem":"WEB","url":"https://drawsvg.org/tools.html#encodeImage:","softwareHelp":{"@type":"Guide","name":"SVG Draw user's guide chapter image encoder","abstract":"Describes how to use the image encoder","isPartOf":"https://drawsvg.org/doc/index.html","url":"https://drawsvg.org/doc/image-encoder.html"},"name":"ImageEncoder","@id":"https://drawsvg.org/tools.html#encodeImage:","thumbnailUrl":"https://storage.googleapis.com/draw-svg/home/img/services64.png"},"@type":"ListItem","position":5,"@context":"https://schema.org"},{"item":{"applicationCategory":"DesignApplication","offers":{"priceCurrency":"EUR","@type":"Offer","price":0},"@type":"WebApplication","description":"Generate a custom shape catalog to use with SVG Draw","applicationSuite":"drawsvg.org","screenshot":"https://storage.googleapis.com/draw-svg/home/img/customshapetool.webp","@context":"https://schema.org","operatingSystem":"WEB","url":"https://drawsvg.org/tools.html#shapemap:","softwareHelp":{"@type":"Guide","name":"SVG Draw user's guide chapter generate a custom shape catalog","abstract":"Describes how to generate a custom shape catalog","isPartOf":"https://drawsvg.org/doc/index.html","url":"https://drawsvg.org/doc/custom-shape-catalog.html"},"name":"ShapeCatalogGenerator","@id":"https://drawsvg.org/tools.html#shapemap:","thumbnailUrl":"https://storage.googleapis.com/draw-svg/home/img/services64.png"},"@type":"ListItem","position":6,"@context":"https://schema.org"}],"@type":"BreadcrumbList","name":"Table of Contents","@context":"https://schema.org"},"@type":"WebPage","name":"DrawSVG tools meme creator, photoSVG generator, optimizer, PNG converter, image encoder, shape catalog generator","@id":"https://drawsvg.org/tools.html","abstract":"Navigation page to DrawSVG tools","isPartOf":"https://drawsvg.org/","@context":"https://schema.org","url":"https://drawsvg.org/tools.html"}</script>
+
+</head>
+<body class="w3-theme-l5">
+<nav class="w3-top">
+	<div id="toolBar" class="w3-bar w3-theme">
+		<div class="w3-button w3-left" style="margin-right:6px" onclick="sideNavSwitch()">
+			<img src="https://storage.googleapis.com/draw-svg/home/img/burgger-white.svg"
+              title="Tools" alt="menu" width="18" height="18" style="margin-right:8px" loading="lazy"/>
+		</div>
+		<h1 id="toolTitle" class="w3-bar-item">DRAW-SVG Tools<br><span id="toolSubTitle">Converter, Optimizer, Encoder, Generators</span></h1>
+
+		<div class="w3-right" style="margin-top:14px;margin-bottom:2px">
+
+			<div id="toolMenuBtn1" class="w3-bar-item w3-button">&nbsp;</div>
+			<div id="toolMenuBtn2" class="w3-bar-item w3-button">&nbsp;</div>
+			<div id="toolMenuBtn3" class="w3-bar-item w3-button">&nbsp;</div>
+			<a id="toolMenuA1" class="w3-button w3-bar-item">&nbsp;</a>
+			<a id="toolMenuA2" class="w3-button w3-bar-item">&nbsp;</a>
+
+			<div class="w3-dropdown-hover w3-margin-right w3-hide-small">
+			  <button id="toolBtn" class="w3-button w3-theme"><img src="https://storage.googleapis.com/draw-svg/home/img/meme-mandrill.svg" alt="Meme maker" loading="lazy"/>Meme creator</button>
+			  <div class="w3-dropdown-content w3-bar-block w3-card" style="font-size:smaller">
+				<a id="memeLink" href="#meme:" class="w3-bar-item w3-button"><img src="https://storage.googleapis.com/draw-svg/home/img/meme-mandrill.svg" alt="Meme maker" loading="lazy"/>Meme</a>
+
+				<a id="scanLink" href="#scan:" class="w3-bar-item w3-button"><img src="https://storage.googleapis.com/draw-svg/home/img/plage.svg" alt="Photo to SVG" loading="lazy"/>Photo-SVG</a>
+				<a id="optimizeLink" href="#optimize:" class="w3-bar-item w3-button"><img src="https://storage.googleapis.com/draw-svg/home/img/optim.svg" alt="Optimize SVG" loading="lazy"/>Optimize</a>
+				<a id="pngLink" href="#svgPNG:" class="w3-bar-item w3-button"><img src="https://storage.googleapis.com/draw-svg/home/img/picture.svg" alt="SVG to PNG" loading="lazy"/>SVG-PNG</a>
+				<a id="encodeLink" href="#encodeImage:" class="w3-bar-item w3-button"><img src="https://storage.googleapis.com/draw-svg/home/img/services.svg" alt="Encode image" loading="lazy"/>Encoder</a>
+				<a id="shapemapLink" href="#shapemap:" class="w3-bar-item w3-button"><img src="https://storage.googleapis.com/draw-svg/home/img/shapemap.svg" alt="Generate custom shape catalog" loading="lazy"/>Shape</a>
+				<a id="emailaccountLink" href="#emailaccount:" class="w3-bar-item w3-button"><img src="https://storage.googleapis.com/draw-svg.appspot.com/home/img/user-circle.svg" alt="Email account" loading="lazy"/>Account</a>
+				<a id="regEdrawLink" href="#regEdraw:" class="w3-bar-item w3-button"><img src="https://storage.googleapis.com/draw-svg.appspot.com/home/img/cloud-parameters.svg" alt="Js-Channel API" loading="lazy"/>API Key</a>
+			  </div>
+			</div>
+			<a href="../" class="w3-bar-item w3-button w3-hide-small" style="margin-right:10px"><img title="Home" style="height:20px;vertical-align:middle" alt="Home" src="data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCA2NCA2NCI+CjxwYXRoIGQ9Ik02NCAzNi45MDNsLTMyLTI0LjgzOS0zMiAyNC44Mzl2LTEwLjEyN2wzMi0yNC44MzkgMzIgMjQuODM5ek01NiAzNnYyNGgtMTZ2LTE2aC0xNnYxNmgtMTZ2LTI0bDI0LTE4eiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg=="></a>
+		</div>
+	</div>
+</nav>
+<nav id="sidenav" class="sidenav" style="width:0px;" >
+   <div class="cardTool">
+	<div class="w3-row">
+	 <div class="w3-col">
+      <div class="w3-center w3-margin">
+		<a href="drawsvg.html" target="_blank">
+        <img  src="https://storage.googleapis.com/draw-svg/home/img/jay.svg" alt="draw" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+     <div class="w3-rest">
+      <p>Edit your drawings
+       <br/>
+       <a href="drawsvg.html" target="_blank">Draw</a>
+      </p>
+     </div>
+    </div>
+	<div class="w3-row">
+	 <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="drawWEB.html" target="_blank">
+        <img src="https://storage.googleapis.com/draw-svg.appspot.com/home/img/drawWEB.svg" alt="drawWEB" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+     <div class="w3-rest">
+      <p>Create a document with an image found on the WEB.
+       <br/>
+       <a href="drawWEB.html" target="_blank">Draw WEB</a>
+      </p>
+     </div>
+    </div>
+    <div class="w3-row">
+     <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="board.html" target="_blank">
+        <img src="https://storage.googleapis.com/draw-svg/home/img/board.svg" alt="share" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+     <div class="w3-rest">
+      <p>Browse, publish, share and comment drawings
+       <br/>
+       <a href="board.html" target="_blank">Browse</a>
+      </p>
+     </div>
+    </div>
+	<div class="w3-row">
+     <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="showcase.html#showcase:" >
+        <img src="https://storage.googleapis.com/draw-svg/home/img/camera.svg" alt="showcases tool" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+     <div class="w3-rest">
+      <p>Learn to use the editor.
+       <br/>
+       <a href="showcase.html#showcase:" >Learn</a>
+      </p>
+     </div>
+    </div>
+    <div class="w3-row">
+     <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="#meme:" onclick="sideNavSwitch()">
+        <img src="https://storage.googleapis.com/draw-svg/home/img/meme-mandrill.svg" alt="Meme maker" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+     <div class="w3-rest">
+      <p>Create memes for your favorite photos.
+       <br/>
+       <a href="#meme:" onclick="sideNavSwitch()">Create</a>
+      </p>
+     </div>
+    </div>
+    <div class="w3-row">
+     <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="#scan:" onclick="sideNavSwitch()">
+        <img src="https://storage.googleapis.com/draw-svg/home/img/plage.svg" alt="Photo to SVG" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+     <div class="w3-rest">
+      <p>Turn your photos into artistic drawings.
+       <br/>
+       <a href="#scan:" onclick="sideNavSwitch()">Generate</a>
+      </p>
+     </div>
+    </div>
+    <div class="w3-row">
+     <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="#optimize:" onclick="sideNavSwitch()">
+        <img src="https://storage.googleapis.com/draw-svg/home/img/optim.svg" alt="Optimize SVG" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+     <div class="w3-rest">
+      <p>Optimize your SVG files.
+       <br/>
+       <a href="#optimize:" onclick="sideNavSwitch()">Optimize</a>
+      </p>
+     </div>
+    </div>
+    <div class="w3-row">
+     <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="#svgPNG:" onclick="sideNavSwitch()">
+        <img src="https://storage.googleapis.com/draw-svg/home/img/picture.svg" alt="SVG to PNG" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+     <div class="w3-rest">
+      <p>Convert your SVG files in PNG images.
+       <br/>
+       <a href="#svgPNG:" onclick="sideNavSwitch()">Convert</a>
+      </p>
+     </div>
+    </div>
+    <div class="w3-row">
+     <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="#encodeImage:" onclick="sideNavSwitch()">
+        <img src="https://storage.googleapis.com/draw-svg/home/img/services.svg" alt="Encode image" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+     <div class="w3-rest">
+      <p>Encode images in base64 for HTML inline insert.
+       <br/>
+       <a href="#encodeImage:" onclick="sideNavSwitch()">Encode</a>
+      </p>
+     </div>
+    </div>
+    <div class="w3-row">
+     <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="#shapemap:" onclick="sideNavSwitch()">
+        <img src="https://storage.googleapis.com/draw-svg/home/img/shapemap.svg" alt="Generate custom shape catalog" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+    <div class="w3-rest">
+      <p>Generate a custom drawsvg shape catalog.
+       <br/>
+       <a href="#shapemap:" onclick="sideNavSwitch()">Generate</a>
+      </p>
+     </div>
+    </div>
+	<div class="w3-row">
+     <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="#emailaccount:" onclick="sideNavSwitch()">
+        <img src="https://storage.googleapis.com/draw-svg.appspot.com/home/img/user-circle.svg" alt="Email account" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+    <div class="w3-rest">
+      <p>Email account.
+       <br/>
+       <a href="#emailaccount:" onclick="sideNavSwitch()">Manage</a>
+      </p>
+     </div>
+    </div>
+	<div class="w3-row">
+     <div class="w3-col">
+      <div class="w3-center w3-margin">
+       <a href="#regEdraw:" onclick="sideNavSwitch()">
+        <img src="https://storage.googleapis.com/draw-svg.appspot.com/home/img/cloud-parameters.svg" alt="Js-Channel API" loading="lazy"/>
+       </a>
+      </div>
+     </div>
+     <div class="w3-rest">
+      <p>Js-Channel integration API.
+       <br/>
+       <a href="#regEdraw:" onclick="sideNavSwitch()">Register</a>
+      </p>
+     </div>
+    </div>
+
+   </div>
+</nav>
+<div id="modalPanel"/>
+<div id="rootPanel">
+</div>
+<footer id="footerPanel" class="w3-theme-l5 w3-border-top">
+	<span  style="font-size:smaller;margin-right:10px;margin-top:4px;margin-bottom:4px" class="w3-right">
+		&copy;2013
+		<a href="./">Draw SVG</a> All Rights Reserved
+	</span>
+</footer>
+<!-- OPTIONAL: include this if you want history support -->
+<iframe src="javascript:''" id="__gwt_historyFrame" tabIndex='-1' style="position:absolute;width:0;height:0;border:0"></iframe>
+
+</body>
+</html>

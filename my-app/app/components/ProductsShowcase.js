@@ -46,34 +46,44 @@ export const ProductsShowcase = ({ products = [], title = '' }) => {
     <section className="products-showcase">
       <div className="products-showcase-header">
         {title && <h2 className="products-showcase-title">{title}</h2>}
-        <div className="products-showcase-nav">
+      </div>
+      <div className="products-showcase-scroller">
+        {canScrollLeft && (
           <button
             type="button"
-            className="products-showcase-btn products-showcase-btn-prev"
+            className="products-showcase-btn products-showcase-btn-prev products-showcase-btn-overlay"
             onClick={() => scroll('left')}
-            disabled={!canScrollLeft}
             aria-label="Önceki ürünler"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
+        )}
+
+        {canScrollRight && (
           <button
             type="button"
-            className="products-showcase-btn products-showcase-btn-next"
+            className="products-showcase-btn products-showcase-btn-next products-showcase-btn-overlay"
             onClick={() => scroll('right')}
-            disabled={!canScrollRight}
             aria-label="Sonraki ürünler"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
-        </div>
-      </div>
-      <div className="products-showcase-viewport" ref={trackRef}>
-        <div className="products-showcase-track">
-          {products.map((product) => (
-            <div key={product.product_id} className="products-showcase-card-wrap">
-              <ProductCard key={product.product_id} product={product} source="home" />
-            </div>
-          ))}
+        )}
+
+        <div className="products-showcase-viewport" ref={trackRef}>
+          <div className="products-showcase-track">
+            {products.map((product) => (
+              <div key={product.product_id} className="products-showcase-card-wrap">
+              <ProductCard
+                key={product.product_id}
+                // TEMP: force ranking to show the design in this showcase
+                product={{ ...product, ranking: 3 }}
+                source="home"
+                enableHoverGallery={false}
+              />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

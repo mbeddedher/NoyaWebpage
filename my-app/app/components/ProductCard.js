@@ -15,11 +15,16 @@ function toImageSrc(url) {
   return publicImageUrl(url) || noImageSrc;
 }
 
-export const ProductCard = ({ product, source }) => {
+export const ProductCard = ({ product, source, enableHoverGallery = true }) => {
   const { userId } = useUser();
   const [selectedSize, setSelectedSize] = useState(product.default_size || product.size_array?.[0]);
   const currentPriceIndex = product.size_array?.indexOf(selectedSize) || 0;
   const currentPrice = product.price_array?.[currentPriceIndex] || product.min_price;
+  const rankingValue =
+    product?.ranking != null && product?.ranking !== '' && !Number.isNaN(Number(product.ranking))
+      ? Number(product.ranking)
+      : null;
+  const rankingStars = rankingValue == null ? 0 : Math.max(0, Math.min(5, Math.floor(rankingValue)));
   const cardRef = useRef(null);
   const impressionSent = useRef(false);
 
@@ -88,7 +93,7 @@ export const ProductCard = ({ product, source }) => {
       ref={cardRef}
       onMouseEnter={() => {
         setIsHovered(true);
-        fetchGallery();
+        if (enableHoverGallery) fetchGallery();
         hoverArmedRef.current = false;
         galleryInteractSentRef.current = false;
         galleryChangeCountRef.current = 0;
@@ -121,7 +126,7 @@ export const ProductCard = ({ product, source }) => {
             sizes="(max-width: 640px) 50vw, (max-width: 1200px) 33vw, 25vw"
             style={{ objectFit: 'contain', objectPosition: 'center' }}
           />
-          {isHovered && galleryImages.length > 1 && (
+          {enableHoverGallery && isHovered && galleryImages.length > 1 && (
             <>
               <div
                 className="product-image-slices"
@@ -188,6 +193,26 @@ export const ProductCard = ({ product, source }) => {
             <span className="price">{currentPrice} TL</span>
           </div>
         </div>
+
+        {rankingValue != null && (
+          <div className="product-ranking" aria-label={`Ranking ${rankingValue.toFixed(1)}`}>
+            <div className="product-ranking__stars" aria-hidden>
+              {Array.from({ length: 5 }).map((_, i) => (
+                // eslint-disable-next-line @next/next/no-img-element -- small static icons
+                <img
+                  key={i}
+                  className="product-ranking__star"
+                  src={i < rankingStars ? '/blossom-1.svg' : '/closed-blossom-5.svg'}
+                  alt=""
+                  width={18}
+                  height={18}
+                  loading="lazy"
+                />
+              ))}
+            </div>
+            <span className="product-ranking__score">{rankingValue.toFixed(1)}</span>
+          </div>
+        )}
 
         {(product.size_array?.length ?? 0) > 0 && (
           <div className="size-selector">

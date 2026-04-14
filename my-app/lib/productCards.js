@@ -41,6 +41,7 @@ export async function queryProductCards(filters) {
         v.variants,
         COALESCE(v.primary_image_url, '/no-image.svg') as primary_image_url,
         pd.min_price,
+        pd.ranking,
         pd.max_price,
         pd.price_array,
         pd.has_variants,

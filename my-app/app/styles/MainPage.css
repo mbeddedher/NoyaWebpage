@@ -2,3 +2,12 @@
   display: flex;
   flex-direction: column;
 }
+
+.main-page-quick-strip {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #f0f0f0;
+}
