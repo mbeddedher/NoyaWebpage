@@ -46,4 +46,10 @@ export const HOME_QUICK_LINKS = [
     href: '/products?categories=5',
     imageSrc: '/public/categories/el-aletleri.jpg',
   },
+  {
+    id: 'peyzaj-taslar',
+    label: 'Peyzaj Taşları',
+    href: '/products?categories=6',
+    imageSrc: '/public/categories/peyzaj_tas.jpg',
+  },
 ];

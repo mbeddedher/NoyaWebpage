@@ -12,7 +12,6 @@ export default function HomeContent({ initialProducts = [] }) {
       <MainPageQuickStrip />
       <ProductsShowcase title="Öne Çıkan Ürünler" products={initialProducts} />
       <Hero />
-      <FourItems />
     </div>
   );
 }
