@@ -7,7 +7,7 @@ export async function GET(request) {
     if (!decoded || !decoded.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    return NextResponse.json({ userId: decoded.userId });
+    return NextResponse.json({ userId: decoded.userId, role: decoded.role || null });
   } catch (error) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

@@ -1,5 +1,5 @@
-import { mkdir, stat, writeFile } from 'fs/promises';
-import { join } from 'path';
+import { access, mkdir, stat, writeFile } from 'fs/promises';
+import path from 'path';
 import sharp from 'sharp';
 import { put } from '@vercel/blob';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,6 +7,27 @@ import { isBlobStorageEnabled } from '~/lib/imageUrls';
 
 const THUMB_WIDTH = 280;
 const THUMB_HEIGHT = 420;
+
+async function resolvePublicImagesDir() {
+  // In a monorepo, process.cwd() may be the repo root or the Next app root.
+  // We want the Next app's "public/images" directory.
+  const cwd = process.cwd();
+  const candidates = [
+    path.join(cwd, 'public', 'images'),
+    path.join(cwd, 'my-app', 'public', 'images'),
+  ];
+
+  for (const p of candidates) {
+    try {
+      await access(p);
+      return p;
+    } catch {
+      // keep trying
+    }
+  }
+  // Default to first candidate; mkdir will create it.
+  return candidates[0];
+}
 
 export async function POST(request) {
   try {
@@ -109,13 +130,13 @@ export async function POST(request) {
       );
     }
 
-    const imagesDir = join(process.cwd(), 'public', 'images');
-    const thumbDir = join(imagesDir, 'thumb');
+    const imagesDir = await resolvePublicImagesDir();
+    const thumbDir = path.join(imagesDir, 'thumb');
     await mkdir(imagesDir, { recursive: true });
     await mkdir(thumbDir, { recursive: true });
 
-    const originalPath = join(imagesDir, fileName);
-    const thumbPathFs = join(thumbDir, fileName);
+    const originalPath = path.join(imagesDir, fileName);
+    const thumbPathFs = path.join(thumbDir, fileName);
     await writeFile(originalPath, originalWebpBuf);
     await writeFile(thumbPathFs, thumbWebpBuf);
 

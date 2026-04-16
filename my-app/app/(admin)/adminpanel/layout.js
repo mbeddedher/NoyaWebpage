@@ -119,6 +119,24 @@ export default function AdminPanelLayout({ children }) {
       label: 'Analytics',
       icon: '📊',
       component: 'Analytics'
+    },
+    {
+      id: 'blog',
+      label: 'Blog',
+      icon: '📝',
+      overlay: true,
+      items: [
+        {
+          id: 'blog-posts-list',
+          label: 'Articles (list)',
+          component: 'BlogPostsList',
+        },
+        {
+          id: 'blog-create',
+          label: 'Add article',
+          component: 'BlogAdmin',
+        },
+      ],
     }
   ];
 

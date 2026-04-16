@@ -2,13 +2,7 @@
 import { AdminTabsProvider } from '../context/AdminTabsContext';
 
 export default function AdminLayout({ children }) {
-  return (
-    <html lang="en">
-      <body>
-        <AdminTabsProvider>
-          {children}
-        </AdminTabsProvider>
-      </body>
-    </html>
-  );
+  // IMPORTANT: Do not render <html>/<body> here — the root `app/layout.js` already does.
+  // Nested <html> causes hydration mismatches (e.g. missing next/font className on <html>).
+  return <AdminTabsProvider>{children}</AdminTabsProvider>;
 }

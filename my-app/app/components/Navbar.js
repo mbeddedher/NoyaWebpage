@@ -159,6 +159,11 @@ const Navbar = () => {
       <Image src="/draw.svg" alt="Draw Icon" id="draw-icon" width={28} height={28} />
       <span id='tasarla-text'>Sulama Sistemi Tasarla</span>
       </Link>  
+
+      <Link href="/blog" className="navbar-blog-link">
+        <span className="navbar-blog-link-text">Blog</span>
+      </Link>
+
       {!isLoggedIn ? (
         <Link href="/login" id='giris-text'>Giriş</Link>
       ) : (

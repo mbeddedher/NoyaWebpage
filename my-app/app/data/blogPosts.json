@@ -1,0 +1,13 @@
+[
+  {
+    "id": "welcome-1",
+    "category": "Duyuru",
+    "title": "Hoş geldiniz!",
+    "content": "Burası blog / newsletter alanı.\n\nAdmin panelden yazılar ekleyebilirsiniz.",
+    "imageUrl": null,
+    "links": [
+      { "label": "Anasayfa", "url": "/" }
+    ],
+    "createdAt": "2026-04-14T00:00:00.000Z"
+  }
+]

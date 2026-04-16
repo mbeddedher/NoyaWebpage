@@ -86,6 +86,15 @@ const components = {
   Analytics: dynamic(() => import('../pages/Analytics'), {
     loading: () => <LoadingComponent />,
   }),
+  BlogAdmin: dynamic(() => import('../pages/BlogAdmin'), {
+    loading: () => <LoadingComponent />,
+  }),
+  BlogPostsList: dynamic(() => import('../pages/BlogPostsList'), {
+    loading: () => <LoadingComponent />,
+  }),
+  EditBlogPost: dynamic(() => import('../pages/EditBlogPost'), {
+    loading: () => <LoadingComponent />,
+  }),
 };
 
 export default function TabContent() {

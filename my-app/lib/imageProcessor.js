@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import path from 'path';
+import fsSync from 'fs';
 import fs from 'fs/promises';
 import { put, del } from '@vercel/blob';
 import { normalizeStoredImageRef, isBlobStorageEnabled } from './imageUrls.js';
@@ -40,7 +41,16 @@ export async function generateImageVersionsWithFallback(imageLike) {
   }
 }
 
-const PUBLIC_DIR = path.join(process.cwd(), 'public');
+function resolvePublicDir() {
+  const cwd = process.cwd();
+  const direct = path.join(cwd, 'public');
+  const monorepo = path.join(cwd, 'my-app', 'public');
+  if (fsSync.existsSync(direct)) return direct;
+  if (fsSync.existsSync(monorepo)) return monorepo;
+  return direct;
+}
+
+const PUBLIC_DIR = resolvePublicDir();
 const IMAGES_DIR = path.join(PUBLIC_DIR, 'images');
 
 const THUMB_WIDTH = 280;

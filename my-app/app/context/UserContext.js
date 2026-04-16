@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 const UserContext = createContext({
   isLoggedIn: false,
   userId: null,
+  role: null,
   login: () => {},
   logout: () => {},
 });
@@ -16,20 +17,24 @@ const UserContext = createContext({
 export const UserProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [role, setRole] = useState(null);
   const router = useRouter();
 
   const fetchUserId = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me', { credentials: 'include' });
       if (res.ok) {
-        const { userId: uid } = await res.json();
+        const { userId: uid, role: r } = await res.json();
         setUserId(uid);
+        setRole(r || null);
         return uid;
       }
       setUserId(null);
+      setRole(null);
       return null;
     } catch {
       setUserId(null);
+      setRole(null);
       return null;
     }
   }, []);
@@ -43,6 +48,7 @@ export const UserProvider = ({ children }) => {
         console.log('No token found, setting logged out');
         setIsLoggedIn(false);
         setUserId(null);
+        setRole(null);
         return false;
       }
 
@@ -54,6 +60,7 @@ export const UserProvider = ({ children }) => {
       console.error('Error checking login status:', error);
       setIsLoggedIn(false);
       setUserId(null);
+      setRole(null);
       return false;
     }
   }, [fetchUserId]);
@@ -106,6 +113,8 @@ export const UserProvider = ({ children }) => {
         console.log('Token set in cookie:', Cookies.get('token'));
         setIsLoggedIn(true);
         setUserId(data.userId ?? null);
+        // best-effort role refresh
+        await fetchUserId();
         router.push('/');
         return true;
       }
@@ -140,6 +149,7 @@ export const UserProvider = ({ children }) => {
       Cookies.remove('token', { path: '/' });
       setIsLoggedIn(false);
       setUserId(null);
+      setRole(null);
       router.push('/');
     }
   };
@@ -149,6 +159,7 @@ export const UserProvider = ({ children }) => {
   const contextValue = {
     isLoggedIn,
     userId,
+    role,
     login,
     logout,
     checkLoginStatus
