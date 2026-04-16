@@ -30,16 +30,15 @@
    channelUrl = 'https://www.youtube.com/',
    channelLinkLabel = 'YouTube kanalına git',
  }) {
-  const safeItems = Array.isArray(items) ? items : [];
- 
    const trackRef = useRef(null);
    const [canScrollLeft, setCanScrollLeft] = useState(false);
    const [canScrollRight, setCanScrollRight] = useState(false);
- 
+
    const [activeId, setActiveId] = useState(null);
+   const safeItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);
    const activeItem = useMemo(
-    () => (activeId ? safeItems.find((x) => x.id === activeId) : null),
-    [activeId, safeItems]
+     () => (activeId ? safeItems.find((x) => x.id === activeId) : null),
+     [activeId, safeItems]
    );
  
    const updateScrollState = () => {
