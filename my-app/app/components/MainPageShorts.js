@@ -30,7 +30,7 @@
    channelUrl = 'https://www.youtube.com/',
    channelLinkLabel = 'YouTube kanalına git',
  }) {
-   if (!Array.isArray(items) || items.length === 0) return null;
+  const safeItems = Array.isArray(items) ? items : [];
  
    const trackRef = useRef(null);
    const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -38,8 +38,8 @@
  
    const [activeId, setActiveId] = useState(null);
    const activeItem = useMemo(
-     () => (activeId ? items.find((x) => x.id === activeId) : null),
-     [activeId, items]
+    () => (activeId ? safeItems.find((x) => x.id === activeId) : null),
+    [activeId, safeItems]
    );
  
    const updateScrollState = () => {
@@ -60,7 +60,7 @@
        el.removeEventListener('scroll', updateScrollState);
        ro.disconnect();
      };
-   }, [items]);
+  }, [safeItems]);
  
    const scroll = (direction) => {
      const el = trackRef.current;
@@ -78,6 +78,8 @@
      return () => window.removeEventListener('keydown', onKeyDown);
    }, [activeItem]);
  
+  if (safeItems.length === 0) return null;
+
    return (
      <section className={styles.section} aria-label="Shorts">
        <div className={styles.container}>
@@ -125,7 +127,7 @@
  
            <div className={styles.viewport} ref={trackRef}>
              <div className={styles.row} role="list">
-               {items.map((s) => {
+              {safeItems.map((s) => {
                  const thumb = (s.thumbnailSrc || '').trim() || toYoutubeThumbUrl(s.youtubeId);
                  return (
                    <button
